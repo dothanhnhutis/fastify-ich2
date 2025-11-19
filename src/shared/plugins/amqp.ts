@@ -14,16 +14,21 @@ declare module "fastify" {
 async function AMQPPlugin(fastify: FastifyInstance, options: AMQPOptions) {
   const amqp = new AMQP(options);
 
-  fastify.decorate("amqp", amqp);
-  fastify.decorateRequest("amqp", amqp);
+  fastify.decorate("amqp");
+  fastify.decorateRequest("amqp");
 
   fastify.addHook("onReady", async () => {
     try {
       await amqp.connect();
+      fastify.amqp = amqp;
     } catch (error: unknown) {
       fastify.log.error({ error }, "RabbitMQ - Connection error.");
       process.exit(0);
     }
+  });
+
+  fastify.addHook("onRequest", async (request) => {
+    request.amqp = amqp;
   });
 
   fastify.addHook("onClose", async () => {

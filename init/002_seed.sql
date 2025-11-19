@@ -31,7 +31,7 @@ WITH
                     'update:role',
                     'delete:role'
                 ],
-                'Vai tro manh nhat trong he thong',
+                'Vai trò khởi tạo từ hệ thống.',
                 false,
                 false
             )

@@ -1,39 +1,40 @@
-import { PGDB } from "@shared/postgres";
+import { serviceHook } from "@shared/hooks/service";
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import type { PoolConfig } from "pg";
+import { Pool, type PoolConfig } from "pg";
 
 declare module "fastify" {
   interface FastifyRequest {
-    db: PGDB;
-    services: {};
+    pool: Pool;
   }
 }
 
 async function postgreSQLDB(fastify: FastifyInstance, options: PoolConfig) {
-  const db = new PGDB(options);
+  const pool = new Pool(options);
+  fastify.decorate("pool", pool);
 
-  fastify.addHook("onReady", async () => {
-    const connected = await db.healthCheck();
-
-    if (connected) {
+  const healthCheck = async () => {
+    try {
+      await pool.query("SELECT 1 as health");
       fastify.log.info("PostgreSQL - Database connected successfully.");
-    } else {
+    } catch (_: unknown) {
       fastify.log.info(`PostgreSQL - Database temporarily unavailable.`);
       process.exit(0);
     }
-  });
+  };
 
-  fastify.decorateRequest("pool");
-  fastify.decorateRequest("services");
+  fastify.addHook("onReady", async () => {
+    await healthCheck();
+  });
 
   fastify.addHook("onRequest", async (request) => {
-    request.db = db;
-    request.services = {};
+    request.pool = pool;
   });
 
+  serviceHook(fastify);
+
   fastify.addHook("onClose", async () => {
-    await db.end();
+    await pool.end();
     fastify.log.info("PostgreSQL - Database connections closed");
   });
 }

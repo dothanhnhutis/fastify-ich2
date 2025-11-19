@@ -9,6 +9,9 @@ export class RedisCache extends Redis {
 }
 
 declare module "fastify" {
+  interface FastifyInstance {
+    redis: RedisCache;
+  }
   interface FastifyRequest {
     redis: RedisCache;
   }
@@ -30,7 +33,7 @@ async function redisCache(
   function updateRedisClient(newClient: RedisCache) {
     redis = newClient;
     // Cập nhật lại decorator
-    // fastify.redis = newClient;
+    fastify.redis = newClient;
   }
 
   function sleep(ms: number) {
@@ -81,6 +84,7 @@ async function redisCache(
   }
 
   fastify.decorateRequest("redis");
+  fastify.decorate("redis", redis);
 
   fastify.addHook("onReady", async () => {
     try {
