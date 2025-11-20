@@ -5,8 +5,6 @@ import BaseUserService from "./base.service";
 
 export default class FindByIdService extends BaseUserService {
   async execute(userId: string): Promise<UserPassword | null> {
-    // const userCache = await this.findByIdCache(userId);
-    // if (userCache) return userCache;
     const queryConfig: QueryConfig = {
       text: `
       SELECT
@@ -90,15 +88,12 @@ export default class FindByIdService extends BaseUserService {
     try {
       const { rows } = await this.pool.query<UserPassword>(queryConfig);
       const user = rows[0];
-      if (!user) {
-        logService.info(
-          `Không tìm thấy người dùng userId=${userId} trong database`
-        );
-        return null;
+      if (rows[0]) {
+        logService.info(`Tìm thấy userId=${userId} trong database`);
+        return user;
       }
-      logService.info(`Tìm thấy người dùng userId=${userId} trong database`);
-      // await this.saveToCache(user);
-      return user;
+      logService.info(`Không tìm thấy userId=${userId} trong database`);
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

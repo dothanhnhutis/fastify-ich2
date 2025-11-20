@@ -2,20 +2,25 @@ import type { Metadata } from "@modules/shared/types";
 import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
 import env from "@shared/config/env";
 import { InternalServerError } from "@shared/utils/error-handler";
-import { makeQueryCacheKey } from "@shared/utils/helper";
+import { buildOrderBy, makeQueryCacheKey } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
 import type { UserRequestType } from "../user.schema";
 import BaseUserService from "./base.service";
+
+const sortFieldMap: Record<string, string> = {
+  username: "u.username",
+  email: "u.email",
+  status: "u.status",
+  deactived_at: "u.deactived_at",
+  created_at: "u.created_at",
+  updated_at: "u.updated_at",
+};
 
 export default class FindManyService extends BaseUserService {
   async execute(
     query: UserRequestType["Query"]["Querystring"]
   ): Promise<{ users: UserWithoutPassword[]; metadata: Metadata }> {
-    // const cacheData = await this.findManyCache(query);
-    // if (cacheData) return cacheData;
-
-    const queryString = [
-      `
+    const baseSelect = `
         SELECT
             u.id,
             u.email,
@@ -70,8 +75,7 @@ export default class FindManyService extends BaseUserService {
             LEFT JOIN files f ON f.id = av.file_id
             AND av.deleted_at IS NULL
         
-        `,
-    ];
+        `;
     const values: unknown[] = [];
     const where: string[] = [];
     let idx = 1;
@@ -106,28 +110,25 @@ export default class FindManyService extends BaseUserService {
       values.push(query.created_to);
     }
 
-    if (where.length > 0) {
-      queryString.push(`WHERE ${where.join(" AND ")}`);
-    }
+    const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-    queryString.push(`GROUP BY u.id, u.email, u.password_hash, u.username, u.status,
+    const groupByClause = `GROUP BY u.id, u.email, u.password_hash, u.username, u.status,
             u.deactived_at, u.created_at, u.updated_at, av.file_id, av.width, av.height,
             av.is_primary, av.created_at, f.original_name, f.mime_type, f.destination,
-            f.file_name, f.size`);
+            f.file_name, f.size`;
 
     const logService = this.log.child({
       service: "FindManyService.execute",
       source: "database",
-      operation: "db.transaction",
     });
 
     let queryConfig: QueryConfig = {
-      // text: queryString
-      //   .join(" ")
-      //   .replace(/(?<=SELECT)([\s\S]*?)(?=FROM)/, " count(*) "),
-      text: `WITH users AS (${queryString.join(
-        " "
-      )}) SELECT count(*) FROM users;`,
+      text: `WITH users AS (
+      ${baseSelect}
+      ${whereClause}
+      ${groupByClause}
+      )
+      SELECT COUNT(*)::int AS count FROM users;`,
       values,
     };
     let client: PoolClient | null = null;
@@ -135,39 +136,50 @@ export default class FindManyService extends BaseUserService {
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
-
-      const { rows } = await client.query<{ count: string }>(queryConfig);
-      logService.info(
-        {
-          step: "1/2",
-          stepOperation: "db.select",
-          queryConfig,
-        },
-        `Có ${rows[0].count} kết quả.`
+      const { rows: countRows } = await client.query<{ count: number }>(
+        queryConfig
       );
-
-      const totalItem = parseInt(rows[0].count, 10);
-      if (query.sort !== undefined) {
-        queryString.push(
-          `ORDER BY ${query.sort
-            .map((sort) => {
-              const [field, direction] = sort.split(".");
-              return `${field} ${direction.toUpperCase()}`;
-            })
-            .join(", ")}`
-        );
+      const totalItem = countRows[0]?.count ?? 0;
+      logService.info(
+        totalItem === 0
+          ? { operation: "db.select", queryConfig }
+          : {
+              operation: "db.transaction",
+              step: "1/2",
+              stepOperation: "db.select",
+              queryConfig,
+            },
+        `Có ${totalItem} kết quả.`
+      );
+      if (!totalItem) {
+        return {
+          users: [],
+          metadata: {
+            totalItem: 0,
+            totalPage: 0,
+            hasNextPage: false,
+            limit: 0,
+            itemStart: 0,
+            itemEnd: 0,
+          },
+        };
       }
+
+      const orderByClause = buildOrderBy(sortFieldMap, query.sort);
 
       const limit = query.limit ?? totalItem;
       const page = query.page ?? 1;
       const offset = (page - 1) * limit;
 
-      queryString.push(`LIMIT $${idx++}::int OFFSET $${idx}::int`);
-      values.push(limit, offset);
-
       queryConfig = {
-        text: queryString.join(" "),
-        values,
+        text: `
+          ${baseSelect}
+          ${whereClause}
+          ${groupByClause}
+          ${orderByClause}
+          LIMIT $${idx++}::int OFFSET $${idx}::int
+        `,
+        values: [...values, limit, offset],
       };
 
       const { rows: users } = await client.query<UserWithoutPassword>(
@@ -175,6 +187,7 @@ export default class FindManyService extends BaseUserService {
       );
       logService.info(
         {
+          operation: "db.transaction",
           step: "2/2",
           stepOperation: "db.select",
           queryConfig,
@@ -197,7 +210,6 @@ export default class FindManyService extends BaseUserService {
           itemEnd: Math.min(page * limit, totalItem),
         },
       };
-      // await this.saveManyToCache(query, result);
 
       return result;
     } catch (error: unknown) {
@@ -206,7 +218,7 @@ export default class FindManyService extends BaseUserService {
           await client.query("ROLLBACK");
           logService.info("Rollback thành công.");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
 
@@ -224,7 +236,7 @@ export default class FindManyService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi truy vấn người dùng database.`
+        `Lỗi khi truy vấn tài khoản database.`
       );
       throw new InternalServerError();
     } finally {

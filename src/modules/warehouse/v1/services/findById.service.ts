@@ -6,21 +6,23 @@ import BaseWarehouseService from "./base.service";
 export default class FindByIdService extends BaseWarehouseService {
   async execute(warehouseId: string): Promise<Warehouse | null> {
     const queryConfig: QueryConfig = {
-      text: `SELECT
-                w.*,
-                COUNT(pi.packaging_id) FILTER (
-                    WHERE
-                        pi.packaging_id IS NOT NULL
-                        AND p.status = 'ACTIVE'
-                )::int AS packaging_count
-            FROM
-                warehouses w
-                LEFT JOIN packaging_inventory pi ON (pi.warehouse_id = w.id)
-                LEFT JOIN packagings p ON (pi.packaging_id = p.id)
-            WHERE
-                w.id = $1
-            GROUP BY
-                w.id;`,
+      text: `
+        SELECT
+            w.*,
+            COUNT(pi.packaging_id) FILTER (
+                WHERE
+                    pi.packaging_id IS NOT NULL
+                    AND p.status = 'ACTIVE'
+            )::int AS packaging_count
+        FROM
+            warehouses w
+            LEFT JOIN packaging_inventory pi ON (pi.warehouse_id = w.id)
+            LEFT JOIN packagings p ON (pi.packaging_id = p.id)
+        WHERE
+            w.id = $1
+        GROUP BY
+            w.id;
+      `,
       values: [warehouseId],
     };
     const logService = this.log.child({
@@ -32,17 +34,16 @@ export default class FindByIdService extends BaseWarehouseService {
     try {
       const { rows } = await this.pool.query<Warehouse>(queryConfig);
 
-      if (!rows[0]) {
+      if (rows[0]) {
         logService.info(
-          `Không tìm thấy nhà kho warehouseId=${warehouseId} trong database`
+          `Tìm thấy nhà kho warehouseId=${warehouseId} trong database`
         );
-        return null;
+        return rows[0];
       }
       logService.info(
-        `Tìm thấy nhà kho warehouseId=${warehouseId} trong database`
+        `Không tìm thấy nhà kho warehouseId=${warehouseId} trong database`
       );
-      // await this.saveToCache(user);
-      return rows[0];
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

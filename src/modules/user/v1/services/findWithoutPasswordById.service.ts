@@ -5,9 +5,6 @@ import BaseUserService from "./base.service";
 
 export default class FindWithoutPasswordByIdService extends BaseUserService {
   async execute(userId: string): Promise<UserWithoutPassword | null> {
-    // const userCache = await this.findByEmailCache(email);
-    // if (userCache) return userCache;
-
     const queryConfig: QueryConfig = {
       text: `
           SELECT
@@ -99,14 +96,12 @@ export default class FindWithoutPasswordByIdService extends BaseUserService {
 
     try {
       const { rows } = await this.pool.query<UserWithoutPassword>(queryConfig);
-      const user = rows[0];
-      if (!user) {
-        logService.info(`Không tìm thấy userId=${userId} trong database`);
-        return null;
+      if (rows[0]) {
+        logService.info(`Tìm thấy userId=${userId} trong database`);
+        return rows[0];
       }
-      logService.info(`Tìm thấy userId=${userId} trong database`);
-      // await this.saveToCache(user);
-      return user;
+      logService.info(`Không tìm thấy userId=${userId} trong database`);
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

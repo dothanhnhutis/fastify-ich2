@@ -165,6 +165,8 @@ export const UserController = {
   },
 
   async uploadAvatar(request: FastifyRequest, reply: FastifyReply) {
+    if (!request.currUser) throw new PermissionError();
+
     if (
       !request.multerField ||
       !request.multerField.avatar ||
@@ -173,10 +175,7 @@ export const UserController = {
       throw new BadRequestError("Không có file nào tải lên.");
     }
     const file = request.multerField.avatar[0];
-    await request.services.user.v1.updateAvatarById(
-      request.currUser?.id ?? "",
-      file
-    );
+    await request.services.user.v1.updateAvatarById(request.currUser.id, file);
     return reply.send({
       statusCode: StatusCodes.OK,
       message: "Cập nhật avatar thành công.",
@@ -184,7 +183,8 @@ export const UserController = {
   },
 
   async deleteAvatar(request: FastifyRequest, reply: FastifyReply) {
-    await request.services.user.v1.deleteAvatarById(request.currUser?.id ?? "");
+    if (!request.currUser) throw new PermissionError();
+    await request.services.user.v1.deleteAvatarById(request.currUser.id);
     return reply.send({
       statusCode: StatusCodes.OK,
       message: "Xoá avatar thành công.",

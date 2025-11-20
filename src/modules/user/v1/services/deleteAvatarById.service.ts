@@ -6,10 +6,10 @@ export default class UpdateAvatarByIdService extends BaseUserService {
   async execute(userId: string): Promise<void> {
     const queryConfig: QueryConfig = {
       text: `
-              UPDATE user_avatars
-              SET deleted_at = $1::timestamptz(3), is_primary = false
-              WHERE user_id = $2::text AND is_primary = true
-            `,
+        UPDATE user_avatars
+        SET deleted_at = $1::timestamptz(3), is_primary = false
+        WHERE user_id = $2::text AND is_primary = true
+      `,
       values: [new Date(), userId],
     };
     const logService = this.log.child({
@@ -21,7 +21,6 @@ export default class UpdateAvatarByIdService extends BaseUserService {
     try {
       await this.pool.query(queryConfig);
       logService.info(`Xoá ảnh đại diện userId=${userId} thành công.`);
-      // this.invalidateCache(userId);
     } catch (error: unknown) {
       this.log.error(
         {

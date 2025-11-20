@@ -2,26 +2,33 @@ import type { Role } from "@modules/shared/role/role.shared.types";
 import type { Metadata } from "@modules/shared/types";
 import env from "@shared/config/env";
 import { InternalServerError } from "@shared/utils/error-handler";
-import { makeQueryCacheKey } from "@shared/utils/helper";
+import { buildOrderBy, makeQueryCacheKey } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
 import type { UserRequestType } from "../user.schema";
 import BaseUserService from "./base.service";
+
+const sortFieldMap: Record<string, string> = {
+  name: "name",
+  permissions: "permissions",
+  description: "description",
+  deactived_at: "deactived_at",
+  status: "status",
+  created_at: "created_at",
+  updated_at: "updated_at",
+};
 
 export default class FindRoleByIdService extends BaseUserService {
   async execute(
     userId: string,
     query?: UserRequestType["GetRolesById"]["Querystring"]
   ): Promise<{ roles: Role[]; metadata: Metadata }> {
-    // const cacheData = await this.findUserRoleQuery(userId, query);
-    // if (cacheData) return cacheData;
-
     const logService = this.log.child({
-      service: "FindRoleByIdService",
+      service: "FindRoleByIdService.execute",
       source: "database",
       operation: "db.transaction",
     });
 
-    const newTable = `
+    const cte = `
           WITH
             roles AS (
                 SELECT
@@ -36,9 +43,9 @@ export default class FindRoleByIdService extends BaseUserService {
             )
         `;
 
-    const queryString = [`SELECT * FROM roles`];
+    const baseSelect = `FROM roles`;
 
-    const values: (string | number | string[])[] = [userId];
+    const values: unknown[] = [userId];
     const where: string[] = [];
     let idx = 2;
 
@@ -74,68 +81,76 @@ export default class FindRoleByIdService extends BaseUserService {
       }
     }
 
-    if (where.length > 0) {
-      queryString.push(`WHERE ${where.join(" AND ")}`);
-    }
+    const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
     let queryConfig: QueryConfig = {
-      text: [newTable, queryString.join(" ").replace("*", "count(*)")].join(
-        " "
-      ),
+      text: `
+        ${cte}
+        SELECT COUNT(*)::int AS count
+        ${baseSelect}
+        ${whereClause}
+      `,
       values,
     };
     let client: PoolClient | null = null;
-
+    let step: number = 1;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
-
-      console.log("queryConfig", queryConfig);
-
-      const { rows } = await client.query<{ count: string }>(queryConfig);
+      const { rows: countRows } = await client.query<{ count: number }>(
+        queryConfig
+      );
+      const totalItem = countRows[0]?.count ?? 0;
 
       logService.info(
         {
-          step: "1/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
-        `Có ${rows[0].count} kết quả.`
+        `Có ${totalItem} kết quả.`
       );
-      const totalItem = parseInt(rows[0].count, 10);
 
-      if (query && query.sort !== undefined) {
-        const unqueField = query.sort.reduce<Record<string, string>>(
-          (prev, curr) => {
-            const [field, direction] = curr.split(".");
-            prev[field] = direction.toUpperCase();
-            return prev;
-          },
-          {}
+      if (!totalItem) {
+        await client.query("COMMIT");
+        logService.info(
+          `Truy vấn truy vấn vai trò của userId=${userId} thành công.`
         );
-
-        const orderBy = Object.entries(unqueField)
-          .map(([field, direction]) => `${field} ${direction}`)
-          .join(", ");
-
-        queryString.push(`ORDER BY ${orderBy}`);
+        return {
+          roles: [],
+          metadata: {
+            totalItem: 0,
+            totalPage: 0,
+            hasNextPage: false,
+            limit: 0,
+            itemStart: 0,
+            itemEnd: 0,
+          },
+        };
       }
+
+      const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
 
       const limit = query?.limit ?? totalItem;
       const page = query?.page ?? 1;
       const offset = (page - 1) * limit;
 
-      queryString.push(`LIMIT $${idx++}::int OFFSET $${idx}::int`);
-      values.push(limit, offset);
-
       queryConfig = {
-        text: [newTable, queryString.join(" ")].join(" "),
-        values,
+        text: `
+          ${cte}
+          SELECT *
+          ${baseSelect}
+          ${whereClause}
+          ${orderByClause}
+          LIMIT $${idx++}::int OFFSET $${idx}::int
+        `,
+        values: [...values, limit, offset],
       };
 
       const { rows: roles } = await client.query<Role>(queryConfig);
       logService.info(
         {
-          step: "2/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
@@ -160,7 +175,6 @@ export default class FindRoleByIdService extends BaseUserService {
           itemEnd: Math.min(page * limit, totalItem),
         },
       };
-      // await this.saveUserRoleQuery({ userId, query }, result);
 
       return result;
     } catch (error: unknown) {
@@ -169,7 +183,7 @@ export default class FindRoleByIdService extends BaseUserService {
           await client.query("ROLLBACK");
           logService.info("Rollback thành công.");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
 

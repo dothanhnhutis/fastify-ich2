@@ -59,7 +59,7 @@ export default class FindDetailByIdService extends BaseWarehouseService {
             w.id = $1
         GROUP BY
             w.id;
-    `,
+      `,
       values: [warehouseId],
     };
     const logService = this.log.child({
@@ -70,16 +70,16 @@ export default class FindDetailByIdService extends BaseWarehouseService {
     });
     try {
       const { rows } = await this.pool.query<WarehouseDetail>(queryConfig);
-      if (!rows[0]) {
+      if (rows[0]) {
         logService.info(
-          `Không tìm thấy thông tin chi tiết nhà kho warehouseId=${warehouseId} trong database.`
+          `Tìm thấy thông tin chi tiết nhà kho warehouseId=${warehouseId} trong database.`
         );
-        return null;
+        return rows[0];
       }
       logService.info(
-        `Tìm thấy thông tin chi tiết nhà kho warehouseId=${warehouseId} trong database.`
+        `Không tìm thấy thông tin chi tiết nhà kho warehouseId=${warehouseId} trong database.`
       );
-      return rows[0];
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

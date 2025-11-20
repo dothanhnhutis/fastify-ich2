@@ -69,18 +69,16 @@ export default class FindDetailByIdService extends BaseRoleService {
 
     try {
       const { rows } = await this.pool.query<RoleDetail>(queryConfig);
-      const roleDetail = rows[0];
-      if (!roleDetail) {
+      if (rows[0]) {
         logService.info(
-          `Không tìm thấy thông tin chi tiết vai trò roleId=${roleId} trong database.`
+          `Tìm thấy thông tin chi tiết vai trò roleId=${roleId} trong database.`
         );
-        return null;
+        return rows[0];
       }
       logService.info(
-        `Tìm thấy thông tin chi tiết vai trò roleId=${roleId} trong database.`
+        `Không tìm thấy thông tin chi tiết vai trò roleId=${roleId} trong database.`
       );
-
-      return roleDetail;
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

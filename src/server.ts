@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
+import fastifyMultipart from "@fastify/multipart";
 import { amqpOptions } from "@shared/constants/amqp";
 import { AMQPHook } from "@shared/hooks/amqp";
-import { serviceHook } from "@shared/hooks/service";
 import amqp from "@shared/plugins/amqp";
 import cookie from "@shared/plugins/cookie";
 import db from "@shared/plugins/db";
@@ -43,8 +43,27 @@ export async function buildServer() {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
   });
+  server.register(fastifyMultipart, {
+    // cấu hình global tối đa
+    // ở middleware có cấu hình thấp hơn
+    limits: {
+      fieldNameSize: 100, // độ dài tối đa của tên field
+      fieldSize: 10 * 1024 * 1024, // kích thước tối đa của giá trị field (non-file)
+      fields: 100, // số field không phải file tối đa
+      fileSize: 10 * 1024 * 1024, // 5 MB cho mỗi file
+      files: 15, // số file tối đa
+      headerPairs: 2000, // header key=>value pairs
+      parts: 1000, // tổng parts = fields + files
+    },
+    // Nếu attachFieldsToBody true thì các field + file được gắn vào req.body
+    // true: khi muốn chuyển toàn bộ file upload và req.body và file không quá lớn.
+    attachFieldsToBody: false,
+    // Nếu muốn khi vượt giới hạn fileSize ném lỗi
+    throwFileSizeLimit: true,
+  });
 
   await server
+    .register(amqp, amqpOptions)
     .register(redis, { host: env.REDIS_HOST, port: env.REDIS_PORT })
     .register(db, {
       connectionString: env.DATABASE_URL,
@@ -53,7 +72,6 @@ export async function buildServer() {
       connectionTimeoutMillis: 500,
       maxLifetimeSeconds: 300,
     })
-    .register(amqp, amqpOptions)
     .register(session, {
       secret: env.SESSION_SECRET_KEY,
       cookieName: env.SESSION_KEY_NAME,

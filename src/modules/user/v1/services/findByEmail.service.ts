@@ -5,9 +5,6 @@ import BaseUserService from "./base.service";
 
 export default class FindByEmailService extends BaseUserService {
   async execute(email: string): Promise<UserPassword | null> {
-    // const userCache = await this.findByEmailCache(email);
-    // if (userCache) return userCache;
-
     const queryConfig: QueryConfig = {
       text: `
       SELECT
@@ -92,14 +89,12 @@ export default class FindByEmailService extends BaseUserService {
 
     try {
       const { rows } = await this.pool.query<UserPassword>(queryConfig);
-      const user = rows[0];
-      if (!user) {
-        logService.info(`Không tìm thấy email=${email} trong database`);
-        return null;
+      if (rows[0]) {
+        logService.info(`Tìm thấy email=${email} trong database`);
+        return rows[0];
       }
-      logService.info(`Tìm thấy email=${email} trong database`);
-      // await this.saveToCache(user);
-      return user;
+      logService.info(`Không tìm thấy email=${email} trong database`);
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

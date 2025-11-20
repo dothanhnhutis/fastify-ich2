@@ -1,16 +1,29 @@
+import type { Metadata } from "@modules/shared/types";
 import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
 import { InternalServerError } from "@shared/utils/error-handler";
-import { isDateString } from "@shared/utils/helper";
+import { buildOrderBy, isDateString } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
 import type { RoleRequestType } from "../role.schema";
 import BaseRoleService from "./base.service";
+
+const sortFieldMap: Record<string, string> = {
+  username: "username",
+  email: "email",
+  status: "status",
+  deactived_at: "deactived_at",
+  created_at: "created_at",
+  updated_at: "updated_at",
+};
 
 export default class FindUsersByIdService extends BaseRoleService {
   async execute(
     roleId: string,
     query?: RoleRequestType["GetUsersById"]["Querystring"]
-  ) {
-    const newTable = `
+  ): Promise<{
+    users: Omit<UserWithoutPassword, "role_count">[];
+    metadata: Metadata;
+  }> {
+    const cte = `
           WITH
             users AS (
               SELECT
@@ -63,7 +76,7 @@ export default class FindUsersByIdService extends BaseRoleService {
             )
           `;
 
-    const queryString = [`SELECT * FROM users`];
+    const baseSelect = `FROM users`;
 
     const values: (string | number)[] = [roleId];
     const where: string[] = [];
@@ -107,10 +120,7 @@ export default class FindUsersByIdService extends BaseRoleService {
         );
       }
     }
-
-    if (where.length > 0) {
-      queryString.push(`WHERE ${where.join(" AND ")}`);
-    }
+    const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
     const logService = this.log.child({
       service: "FindUsersByIdService.execute",
@@ -119,50 +129,66 @@ export default class FindUsersByIdService extends BaseRoleService {
     });
 
     let queryConfig: QueryConfig = {
-      text: [newTable, queryString.join(" ").replace("*", "count(*)")].join(
-        " "
-      ),
+      text: `
+        ${cte}
+        SELECT COUNT(*)::int AS count
+        ${baseSelect}
+        ${whereClause}
+      `,
       values,
     };
 
     let client: PoolClient | null = null;
-
+    let step: number = 1;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
-      const { rows } = await client.query<{ count: string }>(queryConfig);
+      const { rows: countRows } = await client.query<{ count: number }>(
+        queryConfig
+      );
+      const totalItem = countRows[0]?.count ?? 0;
 
       logService.info(
         {
-          step: "1/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
-        `Có ${rows[0].count} kết quả.`
+        `Có ${totalItem} kết quả.`
       );
-      const totalItem = parseInt(rows[0].count, 10);
 
-      if (query?.sort !== undefined) {
-        queryString.push(
-          `ORDER BY ${query.sort
-            .map((sort) => {
-              const [field, direction] = sort.split(".");
-              return `${field} ${direction.toUpperCase()}`;
-            })
-            .join(", ")}`
-        );
+      if (!totalItem) {
+        await client.query("COMMIT");
+        logService.info("Truy vấn thành công.");
+        return {
+          users: [],
+          metadata: {
+            totalItem: 0,
+            totalPage: 0,
+            hasNextPage: false,
+            limit: 0,
+            itemStart: 0,
+            itemEnd: 0,
+          },
+        };
       }
+
+      const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
 
       const limit = query?.limit ?? totalItem;
       const page = query?.page ?? 1;
       const offset = (page - 1) * limit;
 
-      queryString.push(`LIMIT $${idx++}::int OFFSET $${idx}::int`);
-      values.push(limit, offset);
-
       queryConfig = {
-        text: [newTable, queryString.join(" ")].join(" "),
-        values,
+        text: `
+          ${cte}
+          SELECT *
+          ${baseSelect}
+          ${whereClause}
+          ${orderByClause}
+          LIMIT $${idx++}::int OFFSET $${idx}::int
+        `,
+        values: [...values, limit, offset],
       };
 
       const { rows: users } = await client.query<
@@ -170,7 +196,7 @@ export default class FindUsersByIdService extends BaseRoleService {
       >(queryConfig);
       logService.info(
         {
-          step: "2/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
@@ -196,7 +222,7 @@ export default class FindUsersByIdService extends BaseRoleService {
           await client.query("ROLLBACK");
           logService.info("Rollback thành công.");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
       logService.error(
@@ -213,7 +239,7 @@ export default class FindUsersByIdService extends BaseRoleService {
             },
           },
         },
-        `Lỗi khi truy vấn người dùng database.`
+        `Lỗi khi truy vấn vai trò người dùng database.`
       );
       throw new InternalServerError();
     } finally {

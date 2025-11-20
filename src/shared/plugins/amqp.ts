@@ -20,6 +20,8 @@ async function AMQPPlugin(fastify: FastifyInstance, options: AMQPOptions) {
   fastify.addHook("onReady", async () => {
     try {
       await amqp.connect();
+      fastify.log.error("RabbitMQ - Connection success.");
+
       fastify.amqp = amqp;
     } catch (error: unknown) {
       fastify.log.error({ error }, "RabbitMQ - Connection error.");

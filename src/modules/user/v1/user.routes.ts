@@ -95,8 +95,8 @@ export default async function userRoutes(fastify: FastifyInstance) {
           {
             type: "file",
             name: "avatar",
-            fileSize: 1 * 1024 * 1024,
-            maxCount: 1,
+            fileSize: 1 * 1024 * 1024, // 1MB
+            maxCount: 1, // single file image
             uploadDir: "/uploads/avatars",
             allowedMimeTypes: [
               "image/jpeg",

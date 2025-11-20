@@ -84,3 +84,46 @@ export function makeQueryCacheKey(prefix: string, obj: unknown) {
   const hash = crypto.createHash("md5").update(json).digest("hex");
   return `${prefix}:${hash}`;
 }
+
+type SortDirection = "ASC" | "DESC";
+function normalizeDirection(input: string): SortDirection {
+  if (!input) return "ASC";
+  const upper = input.toUpperCase();
+  return upper === "DESC" ? "DESC" : "ASC";
+}
+
+export function buildOrderBy(
+  sortFieldMap: Record<string, string>,
+  sort?: string[]
+): string {
+  if (!sort || sort.length === 0) return "";
+
+  const allowedSortField = new Set(Object.keys(sortFieldMap));
+  const fieldDirection: Record<string, SortDirection> = {};
+
+  for (const item of sort) {
+    const regex: RegExp = /^[A-Za-z0-9_]+\.(?:asc|desc|ASC|DESC)$/gm;
+
+    // field không đúng format -> bỏ qua
+    if (!regex.test(item)) continue;
+
+    const [rawField, rawDirection] = item.split(".");
+    const field = rawField.trim();
+
+    // field không nằm trong whitelist -> bỏ qua
+    if (!field || !allowedSortField.has(field)) {
+      continue;
+    }
+
+    const direction = normalizeDirection(rawDirection);
+    fieldDirection[field] = direction;
+  }
+
+  const parts = Object.entries(fieldDirection).map(
+    ([field, direction]) => `${sortFieldMap[field]} ${direction}`
+  );
+
+  if (parts.length === 0) return "";
+
+  return `ORDER BY ${parts.join(", ")}`;
+}

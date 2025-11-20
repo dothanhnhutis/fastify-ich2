@@ -8,12 +8,6 @@ export default class UpdateByIdService extends BaseUserService {
     userId: string,
     data: UserRequestType["UpdateById"]["Body"]
   ): Promise<void> {
-    const logService = this.log.child({
-      service: "UpdateByIdService.execute",
-      source: "database",
-      operation: "db.transaction",
-    });
-
     if (Object.keys(data).length === 0) return;
 
     const sets: string[] = [];
@@ -42,39 +36,43 @@ export default class UpdateByIdService extends BaseUserService {
       values,
     };
 
+    const logService = this.log.child({
+      service: "UpdateByIdService.execute",
+      source: "database",
+      operation: "db.transaction",
+    });
+
     let client: PoolClient | null = null;
-
-    const maxStep = data.roleIds ? 3 : 1;
-    let step: number = 1;
-
+    let step = 1;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
-      await client.query(queryConfig);
-      logService.info(
-        {
-          step: `${step++}/${maxStep}`,
-          stepOperation: "db.update",
-          queryConfig,
-        },
-        "Cập nhật thông tin user thành công."
-      );
+
+      if (sets.length > 0) {
+        await client.query(queryConfig);
+        logService.info(
+          { step: step++, stepOperation: "db.update", queryConfig },
+          `Cập nhật thông tin userId=${userId} thành công.`
+        );
+      }
+
       if (data.roleIds) {
         if (data.roleIds.length === 0) {
           // xoá hết
-          queryConfig = {
+          const queryConfig = {
             text: `
-                  DELETE FROM user_roles 
-                  WHERE 
-                    user_id = $1::text 
-                  RETURNING *;`,
+              DELETE FROM user_roles 
+              WHERE 
+                user_id = $1::text 
+              RETURNING *;
+            `,
             values: [userId],
           };
 
           await client.query(queryConfig);
           logService.info(
             {
-              step: `${step++}/${maxStep}`,
+              step: step++,
               stepOperation: "db.delete",
               queryConfig,
             },
@@ -83,11 +81,12 @@ export default class UpdateByIdService extends BaseUserService {
         } else {
           queryConfig = {
             text: `
-                  DELETE FROM user_roles
-                  WHERE 
-                    user_id = $1::text
-                    AND role_id != ALL($2::text[])
-                  RETURNING *;`,
+                DELETE FROM user_roles
+                WHERE 
+                  user_id = $1::text
+                  AND role_id != ALL($2::text[])
+                RETURNING *;
+              `,
             values: [userId, data.roleIds],
           };
 
@@ -95,7 +94,7 @@ export default class UpdateByIdService extends BaseUserService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: `${step++}/${maxStep}`,
+              step: step++,
               stepOperation: "db.delete",
               queryConfig,
             },
@@ -104,11 +103,12 @@ export default class UpdateByIdService extends BaseUserService {
 
           queryConfig = {
             text: `
-                  INSERT INTO user_roles (user_id, role_id)
-                  VALUES ${data.roleIds
-                    .map((_, i) => `($1, $${i + 2})`)
-                    .join(", ")} 
-                  ON CONFLICT DO NOTHING;`,
+                INSERT INTO user_roles (user_id, role_id)
+                VALUES ${data.roleIds
+                  .map((_, i) => `($1, $${i + 2})`)
+                  .join(", ")} 
+                ON CONFLICT DO NOTHING;
+              `,
             values: [userId, ...data.roleIds],
           };
 
@@ -117,7 +117,7 @@ export default class UpdateByIdService extends BaseUserService {
 
           logService.info(
             {
-              step: `${step++}/${maxStep}`,
+              step: step++,
               stepOperation: "db.insert",
               queryConfig,
             },
@@ -127,16 +127,14 @@ export default class UpdateByIdService extends BaseUserService {
       }
 
       await client.query("COMMIT");
-
-      // await this.invalidateCache(userId);
-      // await this.invalidateAllQueryCache();
+      logService.info(`Cập nhật tài khoản userId=${userId} thành công.`);
     } catch (error: unknown) {
       if (client) {
         try {
           await client.query("ROLLBACK");
           logService.info("Rollback thành công.");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
 

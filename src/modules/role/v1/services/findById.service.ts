@@ -38,16 +38,12 @@ export default class FindByIdService extends BaseRoleService {
 
     try {
       const { rows } = await this.pool.query<Role>(queryConfig);
-      const role = rows[0];
-      if (!role) {
-        logService.info(
-          `Không tìm thấy vai trò roleId=${roleId} trong database`
-        );
-        return null;
+      if (rows[0]) {
+        logService.info(`Tìm thấy vai trò roleId=${roleId} trong database`);
+        return rows[0];
       }
-      logService.info(`Tìm thấy vai trò roleId=${roleId} trong database`);
-
-      return role;
+      logService.info(`Không tìm thấy vai trò roleId=${roleId} trong database`);
+      return null;
     } catch (error: unknown) {
       logService.error(
         {

@@ -16,9 +16,9 @@ export default class DeleteByIdService extends BaseWarehouseService {
       operation: "db.delete",
       query: queryConfig,
     });
+
     try {
       const { rows } = await this.pool.query<Warehouse>(queryConfig);
-
       logService.info(`Xoá nhà kho warehouseId=${warehouseId} thành công.`);
       return rows[0];
     } catch (error: unknown) {

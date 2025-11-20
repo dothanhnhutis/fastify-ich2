@@ -1,18 +1,27 @@
 import type { Role } from "@modules/shared/role/role.shared.types";
 import type { Metadata } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
-import { isDateString } from "@shared/utils/helper";
+import { buildOrderBy, isDateString } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
 import type { RoleRequestType } from "../role.schema";
 import BaseRoleService from "./base.service";
+
+const sortFieldMap: Record<string, string> = {
+  name: "r.name",
+  permissions: "r.permissions",
+  description: "r.description",
+  deactived_at: "r.deactived_at",
+  status: "r.status",
+  created_at: "r.created_at",
+  updated_at: "r.updated_at",
+};
 
 export default class FindManyService extends BaseRoleService {
   async execute(query: RoleRequestType["Query"]["Querystring"]): Promise<{
     roles: Role[];
     metadata: Metadata;
   }> {
-    const queryString = [
-      `
+    const baseSelect = `
       SELECT
           r.*,
           (
@@ -79,8 +88,7 @@ export default class FindManyService extends BaseRoleService {
             AND av.is_primary = TRUE
           LIMIT 1
       ) av ON TRUE
-    `,
-    ];
+    `;
 
     const values: unknown[] = [];
     const where: string[] = [];
@@ -132,12 +140,9 @@ export default class FindManyService extends BaseRoleService {
         }`
       );
     }
+    const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-    if (where.length > 0) {
-      queryString.push(`WHERE ${where.join(" AND ")}`);
-    }
-
-    queryString.push(`GROUP BY r.id`);
+    const groupByClause = `GROUP BY r.id`;
 
     const logService = this.log.child({
       service: "FindManyService.execute",
@@ -146,57 +151,73 @@ export default class FindManyService extends BaseRoleService {
     });
 
     let queryConfig: QueryConfig = {
-      text: `WITH roles AS (${queryString.join(
-        " "
-      )}) SELECT COUNT(*) FROM roles`,
+      text: `
+      WITH roles AS (
+        ${baseSelect}
+        ${whereClause}
+        ${groupByClause}
+      ) 
+      SELECT COUNT(*)::int as count FROM roles;
+      `,
       values,
     };
 
+    let step = 1;
     let client: PoolClient | null = null;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
 
-      const { rows } = await this.pool.query<{ count: string }>(queryConfig);
+      const { rows: countRows } = await this.pool.query<{ count: number }>(
+        queryConfig
+      );
+      const totalItem = countRows[0]?.count ?? 0;
 
       logService.info(
         {
-          step: "1/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
-        `Có ${rows[0].count} kết quả.`
+        `Có ${totalItem} kết quả.`
       );
-
-      const totalItem = parseInt(rows[0].count, 10);
-
-      if (query.sort !== undefined) {
-        queryString.push(
-          `ORDER BY ${query.sort
-            .map((sort) => {
-              const [field, direction] = sort.split(".");
-              return `${field} ${direction.toUpperCase()}`;
-            })
-            .join(", ")}`
-        );
+      if (!totalItem) {
+        await client.query("COMMIT");
+        logService.info("Truy vấn thành công.");
+        return {
+          roles: [],
+          metadata: {
+            totalItem: 0,
+            totalPage: 0,
+            hasNextPage: false,
+            limit: 0,
+            itemStart: 0,
+            itemEnd: 0,
+          },
+        };
       }
+
+      const orderByClause = buildOrderBy(sortFieldMap, query.sort);
 
       const limit = query.limit ?? totalItem;
       const page = query.page ?? 1;
       const offset = (page - 1) * limit;
 
-      queryString.push(`LIMIT $${idx++}::int OFFSET $${idx}::int`);
-      values.push(limit, offset);
-
       queryConfig = {
-        text: queryString.join(" "),
-        values,
+        text: `
+          ${baseSelect}
+          ${whereClause}
+          ${groupByClause}
+          ${orderByClause}
+          LIMIT $${idx++}::int OFFSET $${idx}::int
+        `,
+        values: [...values, limit, offset],
       };
 
       const { rows: roles } = await this.pool.query<Role>(queryConfig);
       logService.info(
         {
-          step: "2/2",
+          step: step++,
           stepOperation: "db.select",
           queryConfig,
         },
@@ -204,6 +225,7 @@ export default class FindManyService extends BaseRoleService {
       );
       const totalPage = Math.ceil(totalItem / limit) || 0;
       await client.query("COMMIT");
+      logService.info("Truy vấn thành công.");
 
       return {
         roles,
@@ -222,7 +244,7 @@ export default class FindManyService extends BaseRoleService {
           await client.query("ROLLBACK");
           logService.info("Rollback thành công.");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
       logService.error(

@@ -15,11 +15,14 @@ export default class CreateService extends BaseUserService {
       service: "CreateService.execute",
       source: "database",
     });
-    const maxStep = data.roleIds && data.roleIds.length > 0 ? 3 : 2;
     let step: number = 1;
     let client: PoolClient | null = null;
+
+    const baseInsert =
+      "INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *;";
+
     let queryConfig: QueryConfig = {
-      text: `INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *;`,
+      text: baseInsert,
       values: [data.email, data.username, password_hash],
     };
 
@@ -30,14 +33,14 @@ export default class CreateService extends BaseUserService {
       const { rows: userRow } = await client.query<UserPassword>(queryConfig);
       logService.info(
         {
-          step: `${step++}/${maxStep}`,
+          step: step++,
           stepOperation: "db.insert",
           queryConfig: {
-            text: `INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *;`,
+            text: baseInsert,
             values: [data.email, data.username, "***"],
           },
         },
-        "Tạo người dùng mới thành công."
+        "Tạo tài khoản mới thành công."
       );
 
       if (data.roleIds && data.roleIds.length > 0) {
@@ -58,13 +61,14 @@ export default class CreateService extends BaseUserService {
         await client.query(queryConfig);
         logService.info(
           {
-            step: `${step++}/${maxStep}`,
+            step: step++,
             stepOperation: "db.insert",
             queryConfig: queryConfig,
           },
-          `Tạo các vai trò cho userId=${userRow[0].id} thành công`
+          `Tạo các vai trò cho userId=${userRow[0].id} thành công.`
         );
       }
+
       const channel = this.amqp.getChannel("publish-user-channel");
 
       channel.publish(
@@ -76,7 +80,7 @@ export default class CreateService extends BaseUserService {
 
       logService.info(
         {
-          step: `${step++}/${maxStep}`,
+          step: step++,
           channelKey: "publish-user-channel",
           data: {
             email: data.email,
@@ -87,11 +91,8 @@ export default class CreateService extends BaseUserService {
       );
 
       await client.query("COMMIT");
-      logService.info("Tạo người dùng mới thành công.");
+      logService.info("Tạo tài khoản mới thành công.");
 
-      // await this.invalidateAllQueryCache();
-
-      console.log("newUser", userRow[0]);
       return userRow[0];
     } catch (error) {
       if (client) {
@@ -101,6 +102,7 @@ export default class CreateService extends BaseUserService {
           logService.error({ error: rollbackErr }, "Rollback failed");
         }
       }
+      console.log(error);
       logService.error(
         {
           error,
@@ -116,7 +118,7 @@ export default class CreateService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi tạo người dùng mới trong database.`
+        `Lỗi khi tạo tài khoản mới trong database.`
       );
       throw new InternalServerError();
     } finally {

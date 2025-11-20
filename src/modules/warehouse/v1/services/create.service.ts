@@ -11,6 +11,7 @@ export default class CreateService extends BaseWarehouseService {
     const logService = this.log.child({
       service: "CreateService.execute",
       source: "database",
+      operation: "db.transaction",
     });
 
     let queryConfig: QueryConfig = {
@@ -18,16 +19,26 @@ export default class CreateService extends BaseWarehouseService {
       values: [data.name, data.address],
     };
     let client: PoolClient | null = null;
-
+    let step: number = 1;
     try {
-      if (data.packagingIds && data.packagingIds.length > 0) {
-        client = await this.pool.connect();
-        await client.query("BEGIN");
+      client = await this.pool.connect();
+      await client.query("BEGIN");
 
+      const { rows } = await this.pool.query<Warehouse>(queryConfig);
+      logService.info(
+        {
+          step: step++,
+          stepOperation: "db.insert",
+          queryConfig: queryConfig,
+        },
+        `Tạo thông tin nhà kho thành công.`
+      );
+
+      if (data.packagingIds && data.packagingIds.length > 0) {
         const { rows } = await client.query<Warehouse>(queryConfig);
         logService.info(
           {
-            step: `1/2`,
+            step: step++,
             stepOperation: "db.insert",
             queryConfig: queryConfig,
           },
@@ -51,34 +62,22 @@ export default class CreateService extends BaseWarehouseService {
         await client.query(queryConfig);
         logService.info(
           {
-            step: `2/2`,
+            step: step++,
             stepOperation: "db.insert",
             queryConfig: queryConfig,
           },
           `Thêm các bao bì vào nhà kho warehouseId=${rows[0].id} thành công.`
         );
-
-        await client.query("COMMIT");
-        logService.info("Tạo nhà kho mới thành công.");
-
-        return rows[0];
-      } else {
-        const { rows } = await this.pool.query<Warehouse>(queryConfig);
-        logService.info(
-          {
-            operation: "db.insert",
-            queryConfig: queryConfig,
-          },
-          `Tạo thông tin nhà kho thành công.`
-        );
-        return rows[0];
       }
+      await client.query("COMMIT");
+      logService.info("Tạo nhà kho mới thành công.");
+      return rows[0];
     } catch (error) {
       if (client) {
         try {
           await client.query("ROLLBACK");
         } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+          logService.error({ error: rollbackErr }, "Rollback thất bại.");
         }
       }
       logService.error(

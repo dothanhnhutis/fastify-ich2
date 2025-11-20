@@ -17,7 +17,6 @@ export default class DeleteByIdService extends BaseRoleService {
     });
     try {
       const { rows } = await this.pool.query<Role>(queryConfig);
-
       logService.info(`Xoá vai trò roleId=${roleId} thành công.`);
       return rows[0];
     } catch (error: unknown) {

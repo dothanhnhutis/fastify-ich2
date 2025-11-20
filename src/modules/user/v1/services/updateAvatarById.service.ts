@@ -9,7 +9,7 @@ import BaseUserService from "./base.service";
 export default class UpdateAvatarById extends BaseUserService {
   async execute(userId: string, file: MulterFile): Promise<void> {
     const logService = this.log.child({
-      service: "UserService.updateAvatarById",
+      service: "UserService.execute",
       source: "database",
       operation: "db.transaction",
     });
@@ -74,8 +74,6 @@ export default class UpdateAvatarById extends BaseUserService {
 
       await client.query("COMMIT");
       logService.info(`Cập nhật ảnh đại diện userId=${userId} thành công.`);
-      // await this.invalidateCache(userId);
-      // await this.invalidateAllQueryCache(userId);
     } catch (error) {
       deleteFile(file.path);
       if (client) {
@@ -85,7 +83,6 @@ export default class UpdateAvatarById extends BaseUserService {
           logService.error({ error: rollbackErr }, "Rollback failed");
         }
       }
-
       logService.error(
         {
           error,

@@ -2,6 +2,27 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import Redis, { type RedisOptions } from "ioredis";
 
+declare module "ioredis" {
+  interface Redis {
+    findUserByEmailLuaScript(email: string): Promise<string | null>;
+    findUserDetailByIdlLuaScript(
+      userId: string
+    ): Promise<[string, string] | null>;
+    invalidateUserLuaScript(userId: string): Promise<number>;
+    invalidateUsersLuaScript(...userIds: string[]): Promise<number>;
+    invalidateUserRolesLuaScript(...userIds: string[]): Promise<string[]>;
+    invalidateAllUserQueryLuaScript(
+      pattern: string,
+      scanCount?: number
+    ): Promise<number>;
+
+    findSessionsByUserIdLuaScript(
+      userId: string,
+      scanCount?: number
+    ): Promise<string[]>;
+  }
+}
+
 export class RedisCache extends Redis {
   constructor(options: Omit<RedisOptions, "lazyConnect" | "retryStrategy">) {
     super({ ...options, lazyConnect: true, retryStrategy: () => null });
