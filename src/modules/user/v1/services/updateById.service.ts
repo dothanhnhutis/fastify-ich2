@@ -43,7 +43,8 @@ export default class UpdateByIdService extends BaseUserService {
     });
 
     let client: PoolClient | null = null;
-    let step = 1;
+    let step = 0;
+    const maxStep = this.caculMaxStep(data);
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -51,8 +52,8 @@ export default class UpdateByIdService extends BaseUserService {
       if (sets.length > 0) {
         await client.query(queryConfig);
         logService.info(
-          { step: step++, stepOperation: "db.update", queryConfig },
-          `Cập nhật thông tin userId=${userId} thành công.`
+          { step: ++step, stepOperation: "db.update", queryConfig },
+          `[${step}/${maxStep}] Cập nhật thông tin userId=${userId} thành công.`
         );
       }
 
@@ -72,11 +73,11 @@ export default class UpdateByIdService extends BaseUserService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.delete",
               queryConfig,
             },
-            `Xoá hết vai trò của userId=${userId} thành công.`
+            `[${step}/${maxStep}] Xoá hết vai trò của userId=${userId} thành công.`
           );
         } else {
           queryConfig = {
@@ -94,11 +95,11 @@ export default class UpdateByIdService extends BaseUserService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.delete",
               queryConfig,
             },
-            `Xoá vai trò của userId=${userId} không trong danh sách thành công.`
+            `[${step}/${maxStep}] Xoá vai trò của userId=${userId} không trong danh sách thành công.`
           );
 
           queryConfig = {
@@ -117,27 +118,20 @@ export default class UpdateByIdService extends BaseUserService {
 
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.insert",
               queryConfig,
             },
-            `Tạo vai trò mới cho userId=${userId} thành công.`
+            `[${step}/${maxStep}] Tạo vai trò mới cho userId=${userId} thành công.`
           );
         }
       }
 
       await client.query("COMMIT");
-      logService.info(`Cập nhật tài khoản userId=${userId} thành công.`);
+      logService.info(
+        `[${step}/${maxStep}] Cập nhật tài khoản userId=${userId} thành công.`
+      );
     } catch (error: unknown) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-          logService.info("Rollback thành công.");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback thất bại.");
-        }
-      }
-
       logService.error(
         {
           error,
@@ -152,13 +146,37 @@ export default class UpdateByIdService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi cập nhật userId=${userId} database.`
+        `[${step}/${maxStep}] Lỗi khi cập nhật userId=${userId} database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
+
       throw new InternalServerError();
     } finally {
       if (client) {
         client.release();
       }
     }
+  }
+
+  private caculMaxStep(data: UserRequestType["UpdateById"]["Body"]): number {
+    let step = 0;
+    if (Object.keys(data).length === 0) return step;
+    const { roleIds, ...user } = data;
+    if (Object.keys(user).length > 0) step++;
+    if (roleIds) {
+      step++;
+      if (roleIds.length > 0) step++;
+    }
+    return step;
   }
 }

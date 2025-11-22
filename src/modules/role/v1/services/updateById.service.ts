@@ -54,7 +54,8 @@ export default class UpdateByIdService extends BaseRoleService {
 
     let client: PoolClient | null = null;
 
-    let step = 1;
+    let step = 0;
+    const maxStep = this.caculMaxStep(data);
 
     try {
       client = await this.pool.connect();
@@ -64,11 +65,11 @@ export default class UpdateByIdService extends BaseRoleService {
         await client.query<Role>(queryConfig);
         logService.info(
           {
-            step: step++,
+            step: ++step,
             stepOperation: "db.update",
             queryConfig,
           },
-          `Cập nhật vai trò roleId=${roleId} thành công.`
+          `[${step}/${maxStep}] Cập nhật vai trò roleId=${roleId} thành công.`
         );
       }
 
@@ -87,11 +88,11 @@ export default class UpdateByIdService extends BaseRoleService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.delete",
               queryConfig,
             },
-            `Xoá hết người dùng của roleId=${roleId} thành công.`
+            `[${step}/${maxStep}] Xoá hết người dùng của roleId=${roleId} thành công.`
           );
         } else {
           queryConfig = {
@@ -108,11 +109,11 @@ export default class UpdateByIdService extends BaseRoleService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.delete",
               queryConfig,
             },
-            `Xoá người dùng của roleId=${roleId} không có trong danh sách thành công`
+            `[${step}/${maxStep}] Xoá người dùng của roleId=${roleId} không có trong danh sách thành công`
           );
           queryConfig = {
             text: `
@@ -128,24 +129,19 @@ export default class UpdateByIdService extends BaseRoleService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: ++step,
               stepOperation: "db.insert",
               queryConfig,
             },
-            `Tạo người dùng mới cho roleId=${roleId} thành công.`
+            `[${step}/${maxStep}] Tạo người dùng mới cho roleId=${roleId} thành công.`
           );
         }
 
       await client.query("COMMIT");
-      logService.info(`Cập nhật vai trò roleId=${roleId} thành công.`);
+      logService.info(
+        `[${step}/${maxStep}] Cập nhật vai trò roleId=${roleId} thành công.`
+      );
     } catch (error) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback thất bại.");
-        }
-      }
       logService.error(
         {
           error,
@@ -161,13 +157,36 @@ export default class UpdateByIdService extends BaseRoleService {
             },
           },
         },
-        `Lỗi khi cập nhật vai trò roleId=${roleId} trong database.`
+        `[${step}/${maxStep}] Lỗi khi cập nhật vai trò roleId=${roleId} trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {
         client.release();
       }
     }
+  }
+
+  private caculMaxStep(data: RoleRequestType["UpdateById"]["Body"]): number {
+    let step: number = 0;
+    if (Object.keys(data).length === 0) return step;
+    const { userIds, ...role } = data;
+    if (Object.keys(role).length > 0) step++;
+    if (userIds) {
+      step++;
+      if (userIds.length > 0) step++;
+    }
+    return step;
   }
 }

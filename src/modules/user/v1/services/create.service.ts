@@ -15,7 +15,9 @@ export default class CreateService extends BaseUserService {
       service: "CreateService.execute",
       source: "database",
     });
-    let step: number = 1;
+    let step: number = 0;
+    const maxStep: number = data.roleIds && data.roleIds.length > 0 ? 3 : 2;
+
     let client: PoolClient | null = null;
 
     const baseInsert =
@@ -33,14 +35,14 @@ export default class CreateService extends BaseUserService {
       const { rows: userRow } = await client.query<UserPassword>(queryConfig);
       logService.info(
         {
-          step: step++,
+          step: `${++step}/${maxStep}`,
           stepOperation: "db.insert",
           queryConfig: {
             text: baseInsert,
             values: [data.email, data.username, "***"],
           },
         },
-        "Tạo tài khoản mới thành công."
+        `[${step}/${maxStep}] Tạo tài khoản mới thành công.`
       );
 
       if (data.roleIds && data.roleIds.length > 0) {
@@ -61,11 +63,11 @@ export default class CreateService extends BaseUserService {
         await client.query(queryConfig);
         logService.info(
           {
-            step: step++,
+            step: `${++step}/${maxStep}`,
             stepOperation: "db.insert",
             queryConfig: queryConfig,
           },
-          `Tạo các vai trò cho userId=${userRow[0].id} thành công.`
+          `[${step}/${maxStep}] Tạo các vai trò cho userId=${userRow[0].id} thành công.`
         );
       }
 
@@ -80,29 +82,21 @@ export default class CreateService extends BaseUserService {
 
       logService.info(
         {
-          step: step++,
+          step: `${++step}/${maxStep}`,
           channelKey: "publish-user-channel",
           data: {
             email: data.email,
             password: "***",
           },
         },
-        `Gửi mật khẩu qua email cho userId=${userRow[0].id} thành công`
+        `[${step}/${maxStep}] Gửi mật khẩu qua email cho userId=${userRow[0].id} thành công`
       );
 
       await client.query("COMMIT");
-      logService.info("Tạo tài khoản mới thành công.");
+      logService.info(`[${step}/${maxStep}] Tạo tài khoản mới thành công.`);
 
       return userRow[0];
     } catch (error) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
-        }
-      }
-      console.log(error);
       logService.error(
         {
           error,
@@ -118,8 +112,18 @@ export default class CreateService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi tạo tài khoản mới trong database.`
+        `[${step}/${maxStep}] Lỗi khi tạo tài khoản mới trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback failed`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {

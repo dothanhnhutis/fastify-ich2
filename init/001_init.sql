@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     username VARCHAR(100) NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE',
-    deactived_at TIMESTAMPTZ(3),
+    deactived_at TIMESTAMPTZ(3), -- soft delete
     created_at TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     CONSTRAINT users_pkey PRIMARY KEY (id)
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS roles (
     permissions TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
     description TEXT NOT NULL DEFAULT '',
     status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE',
-    deactived_at TIMESTAMPTZ(3),
+    deactived_at TIMESTAMPTZ(3),      -- soft delete
     can_delete BOOLEAN NOT NULL DEFAULT TRUE,
     can_update BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),

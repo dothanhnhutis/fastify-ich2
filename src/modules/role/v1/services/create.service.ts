@@ -24,7 +24,8 @@ export default class CreateService extends BaseRoleService {
     };
 
     let client: PoolClient | null = null;
-    let step: number = 1;
+    let step: number = 0;
+    let maxStep: number = 2;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -32,11 +33,13 @@ export default class CreateService extends BaseRoleService {
       const { rows } = await client.query<Role>(queryConfig);
       logService.info(
         {
-          step: step++,
+          step: ++step,
           stepOperation: "db.insert",
           queryConfig,
         },
-        "Tạo vai trò mới thành công."
+        `[${step}/${
+          data.userIds.length > 0 ? --maxStep : maxStep
+        }]Tạo vai trò mới thành công.`
       );
       if (data.userIds.length > 0) {
         const queryConfig: QueryConfig = {
@@ -48,26 +51,19 @@ export default class CreateService extends BaseRoleService {
         await client.query(queryConfig);
         logService.info(
           {
-            step: step++,
+            step: ++step,
             stepOperation: "db.insert",
             queryConfig,
           },
-          `Tạo các vai trò cho roleId=${rows[0].id} thành công`
+          `[${step}/${maxStep}] Tạo các vai trò cho roleId=${rows[0].id} thành công`
         );
       }
 
       await client.query("COMMIT");
-      logService.info("Tạo vai trò mới thành công.");
+      logService.info(`[${step}/${maxStep}] Tạo vai trò mới thành công.`);
 
       return rows[0];
     } catch (error) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback thất bại.");
-        }
-      }
       logService.error(
         {
           error,
@@ -83,8 +79,20 @@ export default class CreateService extends BaseRoleService {
             },
           },
         },
-        `Lỗi khi tạo vai trò mới trong database.`
+        `[${step}/${maxStep}] Lỗi khi tạo vai trò mới trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
+
       throw new InternalServerError();
     } finally {
       if (client) {

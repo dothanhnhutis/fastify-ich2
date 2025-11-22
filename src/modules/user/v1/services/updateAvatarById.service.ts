@@ -1,7 +1,7 @@
+import fs from "node:fs";
 import type { FileUpload } from "@modules/shared/file/file.shared.types";
 import type { MulterFile } from "@shared/middleware/multer";
 import { InternalServerError } from "@shared/utils/error-handler";
-import { deleteFile } from "@shared/utils/file";
 import type { PoolClient, QueryConfig } from "pg";
 import sharp from "sharp";
 import BaseUserService from "./base.service";
@@ -14,6 +14,8 @@ export default class UpdateAvatarById extends BaseUserService {
       operation: "db.transaction",
     });
     let client: PoolClient | null = null;
+    let step: number = 0;
+    const maxStep: number = 3;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -37,8 +39,12 @@ export default class UpdateAvatarById extends BaseUserService {
 
       const { rows: files } = await client.query<FileUpload>(queryConfig);
       logService.info(
-        { step: "1/3", stepOperation: "db.insert", queryConfig },
-        "Thêm file mới thành công."
+        {
+          step: `${++step}/${maxStep}`,
+          stepOperation: "db.insert",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Thêm file mới thành công.`
       );
 
       // xoá mềm avatar cũ
@@ -52,8 +58,12 @@ export default class UpdateAvatarById extends BaseUserService {
       };
       await client.query(queryConfig);
       logService.info(
-        { step: "2/3", stepOperation: "db.update", queryConfig },
-        "Xoá mềm ảnh đại diện cũ thành công."
+        {
+          step: `${++step}/${maxStep}`,
+          stepOperation: "db.update",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Xoá mềm ảnh đại diện cũ thành công.`
       );
 
       // thêm avatar
@@ -68,21 +78,28 @@ export default class UpdateAvatarById extends BaseUserService {
 
       await client.query(queryConfig);
       logService.info(
-        { step: "3/3", stepOperation: "db.insert", queryConfig },
-        "Tạo ảnh đại diện mới thành công."
+        {
+          step: `${++step}/${maxStep}`,
+          stepOperation: "db.insert",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Tạo ảnh đại diện mới thành công.`
       );
 
       await client.query("COMMIT");
-      logService.info(`Cập nhật ảnh đại diện userId=${userId} thành công.`);
+      logService.info(
+        `[${step}/${maxStep}] Cập nhật ảnh đại diện userId=${userId} thành công.`
+      );
     } catch (error) {
-      deleteFile(file.path);
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
+      fs.unlink(file.path, (err) => {
+        if (err) {
+          logService.error(
+            { error: err },
+            `[${step}/${maxStep}] Xoá file thât bại.`
+          );
         }
-      }
+        logService.info(`[${step}/${maxStep}] Xoá file thanh công.`);
+      });
       logService.error(
         {
           error,
@@ -97,8 +114,20 @@ export default class UpdateAvatarById extends BaseUserService {
             },
           },
         },
-        `Lỗi cập nhật ảnh đại diện cho userId=${userId}.`
+        `[${step}/${maxStep}] Lỗi cập nhật ảnh đại diện cho userId=${userId}.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
+
       throw new InternalServerError();
     } finally {
       if (client) {

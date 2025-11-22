@@ -162,7 +162,8 @@ export default class FindManyService extends BaseRoleService {
       values,
     };
 
-    let step = 1;
+    let step = 0;
+    let maxStep = 2;
     let client: PoolClient | null = null;
     try {
       client = await this.pool.connect();
@@ -173,17 +174,17 @@ export default class FindManyService extends BaseRoleService {
       );
       const totalItem = countRows[0]?.count ?? 0;
 
-      logService.info(
-        {
-          step: step++,
-          stepOperation: "db.select",
-          queryConfig,
-        },
-        `Có ${totalItem} kết quả.`
-      );
       if (!totalItem) {
+        logService.info(
+          {
+            step: ++step,
+            stepOperation: "db.select",
+            queryConfig,
+          },
+          `[${step}/${--maxStep}] Có ${totalItem} kết quả.`
+        );
         await client.query("COMMIT");
-        logService.info("Truy vấn thành công.");
+        logService.info(`[${step}/${maxStep}] Truy vấn thành công.`);
         return {
           roles: [],
           metadata: {
@@ -196,6 +197,15 @@ export default class FindManyService extends BaseRoleService {
           },
         };
       }
+
+      logService.info(
+        {
+          step: ++step,
+          stepOperation: "db.select",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Có ${totalItem} kết quả.`
+      );
 
       const orderByClause = buildOrderBy(sortFieldMap, query.sort);
 
@@ -217,15 +227,15 @@ export default class FindManyService extends BaseRoleService {
       const { rows: roles } = await this.pool.query<Role>(queryConfig);
       logService.info(
         {
-          step: step++,
+          step: ++step,
           stepOperation: "db.select",
           queryConfig,
         },
-        "Truy vấn với sắp xếp và phân trang thành công."
+        `[${step}/${maxStep}] Truy vấn với sắp xếp và phân trang thành công.`
       );
       const totalPage = Math.ceil(totalItem / limit) || 0;
       await client.query("COMMIT");
-      logService.info("Truy vấn thành công.");
+      logService.info(`[${step}/${maxStep}] Truy vấn thành công.`);
 
       return {
         roles,
@@ -239,14 +249,6 @@ export default class FindManyService extends BaseRoleService {
         },
       };
     } catch (error: unknown) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-          logService.info("Rollback thành công.");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback thất bại.");
-        }
-      }
       logService.error(
         {
           error,
@@ -261,8 +263,19 @@ export default class FindManyService extends BaseRoleService {
             },
           },
         },
-        `Lỗi khi truy vấn trong database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {

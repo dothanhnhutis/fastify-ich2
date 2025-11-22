@@ -23,11 +23,11 @@ export function securityPath(root: string, pathString: string) {
   return absPath;
 }
 
-export function deleteFile(pathString: string) {
-  fs.unlink(pathString, (err) => {
-    if (err) {
-      console.log("xoá file thât bại.");
-    }
-    console.log("xoá file thanh công.");
-  });
-}
+// export function deleteFile(pathString: string) {
+//   fs.unlink(pathString, (err) => {
+//     if (err) {
+//       console.log("xoá file thât bại.");
+//     }
+//     console.log("xoá file thanh công.");
+//   });
+// }

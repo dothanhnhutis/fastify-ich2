@@ -94,6 +94,7 @@ export default class FindRoleByIdService extends BaseUserService {
     };
     let client: PoolClient | null = null;
     let step: number = 1;
+    let maxStep: number = 2;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -102,19 +103,15 @@ export default class FindRoleByIdService extends BaseUserService {
       );
       const totalItem = countRows[0]?.count ?? 0;
 
-      logService.info(
-        {
-          step: step++,
-          stepOperation: "db.select",
-          queryConfig,
-        },
-        `Có ${totalItem} kết quả.`
-      );
-
       if (!totalItem) {
         await client.query("COMMIT");
         logService.info(
-          `Truy vấn truy vấn vai trò của userId=${userId} thành công.`
+          {
+            step: `${++step}/${--maxStep}`,
+            stepOperation: "db.select",
+            queryConfig,
+          },
+          `[${step}/${maxStep}] Có ${totalItem} kết quả.`
         );
         return {
           roles: [],
@@ -128,6 +125,15 @@ export default class FindRoleByIdService extends BaseUserService {
           },
         };
       }
+
+      logService.info(
+        {
+          step: `${++step}/${maxStep}`,
+          stepOperation: "db.select",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Có ${totalItem} kết quả.`
+      );
 
       const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
 
@@ -150,18 +156,18 @@ export default class FindRoleByIdService extends BaseUserService {
       const { rows: roles } = await client.query<Role>(queryConfig);
       logService.info(
         {
-          step: step++,
+          step: `${++step}/${maxStep}`,
           stepOperation: "db.select",
           queryConfig,
         },
-        "Truy vấn với sắp xếp và phân trang thành công."
+        `[${step}/${maxStep}] Truy vấn với sắp xếp và phân trang thành công.`
       );
 
       const totalPage = Math.ceil(totalItem / limit);
 
       await client.query("COMMIT");
       logService.info(
-        `Truy vấn truy vấn vai trò của userId=${userId} thành công.`
+        `[${step}/${maxStep}] Truy vấn truy vấn vai trò của userId=${userId} thành công.`
       );
 
       const result = {
@@ -178,15 +184,6 @@ export default class FindRoleByIdService extends BaseUserService {
 
       return result;
     } catch (error: unknown) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-          logService.info("Rollback thành công.");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback thất bại.");
-        }
-      }
-
       logService.error(
         {
           error,
@@ -201,8 +198,19 @@ export default class FindRoleByIdService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi truy vấn vai trò của userId=${userId} database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn vai trò của userId=${userId} database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {
