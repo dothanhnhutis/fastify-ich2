@@ -8,7 +8,7 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["Query"]>,
     reply: FastifyReply
   ) {
-    const data = await req.warehouses.findWarehouses(req.query);
+    const data = await req.services.warehouse.v1.findMany(req.query);
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
@@ -21,7 +21,7 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["GetById"]>,
     reply: FastifyReply
   ) {
-    const warehouse = await req.warehouses.findWarehouseById(req.params.id);
+    const warehouse = await req.services.warehouse.v1.findById(req.params.id);
     if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
@@ -36,9 +36,9 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["GetPackagingsById"]>,
     reply: FastifyReply
   ) {
-    const warehouse = await req.warehouses.findWarehouseById(req.params.id);
+    const warehouse = await req.services.warehouse.v1.findById(req.params.id);
     if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
-    const detail = await req.warehouses.findPackagingsByWarehouseId(
+    const detail = await req.services.warehouse.v1.findPackagingsById(
       req.params.id,
       req.query
     );
@@ -53,7 +53,9 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["GetDetailById"]>,
     reply: FastifyReply
   ) {
-    const detail = await req.warehouses.findWarehouseDetailById(req.params.id);
+    const detail = await req.services.warehouse.v1.findDetailById(
+      req.params.id
+    );
     if (!detail) throw new BadRequestError("Nhà kho không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
@@ -66,18 +68,18 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["Create"]>,
     reply: FastifyReply
   ) {
-    if (req.body.packagingIds) {
-      for (const packagingId of req.body.packagingIds) {
-        const existsPackaging = await req.packagings.findPackagingById(
-          packagingId
-        );
-        if (!existsPackaging)
-          throw new BadRequestError(
-            `Mã bao bì id=${packagingId} không tồn tại`
-          );
-      }
-    }
-    const role = await req.warehouses.createNewWarehouse(req.body);
+    // if (req.body.packagingIds) {
+    //   for (const packagingId of req.body.packagingIds) {
+    //     const existsPackaging = await req.services.warehouse.v1.findPackagingById(
+    //       packagingId
+    //     );
+    //     if (!existsPackaging)
+    //       throw new BadRequestError(
+    //         `Mã bao bì id=${packagingId} không tồn tại`
+    //       );
+    //   }
+    // }
+    const role = await req.services.warehouse.v1.create(req.body);
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
       statusText: "OK",
@@ -92,22 +94,21 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["UpdateById"]>,
     reply: FastifyReply
   ) {
-    const warehouse = await req.warehouses.findWarehouseById(req.params.id);
+    const warehouse = await req.services.warehouse.v1.findById(req.params.id);
     if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
 
-    if (req.body.packagingIds) {
-      for (const packagingId of req.body.packagingIds) {
-        const existsPackaging = await req.packagings.findPackagingById(
-          packagingId
-        );
-        if (!existsPackaging)
-          throw new BadRequestError(
-            `Mã bao bì id=${packagingId} không tồn tại`
-          );
-      }
-    }
+    // if (req.body.packagingIds) {
+    //   for (const packagingId of req.body.packagingIds) {
+    //     const existsPackaging =
+    //       await req.services.warehouse.v1.findPackagingById(packagingId);
+    //     if (!existsPackaging)
+    //       throw new BadRequestError(
+    //         `Mã bao bì id=${packagingId} không tồn tại`
+    //       );
+    //   }
+    // }
 
-    await req.warehouses.updateWarehouseById(warehouse.id, req.body);
+    await req.services.warehouse.v1.updateById(warehouse.id, req.body);
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
@@ -118,21 +119,21 @@ export const WarehouseController = {
     });
   },
 
-  //  async deleteById(
-  //   req: FastifyRequest<WarehouseRequestType[""]>,
-  //   reply: FastifyReply
-  // ) {
-  //   const warehouse = await req.warehouses.findWarehouseById(req.params.id);
-  //   if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
+  async deleteById(
+    req: FastifyRequest<WarehouseRequestType["DeleteById"]>,
+    reply: FastifyReply
+  ) {
+    const warehouse = await req.services.warehouse.v1.findById(req.params.id);
+    if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
 
-  //   await req.warehouses.findWarehouseDetailById(warehouse.id);
+    await req.services.warehouse.v1.deleteById(warehouse.id);
 
-  //   reply.code(StatusCodes.OK).send({
-  //     statusCode: StatusCodes.OK,
-  //     statusText: "OK",
-  //     data: {
-  //       message: "Xoá nhà kho thành công.",
-  //     },
-  //   });
-  // }
+    reply.code(StatusCodes.OK).send({
+      statusCode: StatusCodes.OK,
+      statusText: "OK",
+      data: {
+        message: "Xoá nhà kho thành công.",
+      },
+    });
+  },
 };

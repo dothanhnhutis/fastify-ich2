@@ -5,110 +5,120 @@ import type { Warehouse } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
 
 export default class UpdateByIdService extends BaseWarehouseService {
-  async updateWarehouseById(
+  async execute(
     warehouseId: string,
     data: WarehouseRequestType["UpdateById"]["Body"]
   ): Promise<void> {
     if (Object.keys(data).length === 0) return;
+    const { packagingIds, ...warehouse } = data;
 
     let idx = 1;
     const sets: string[] = [];
-    const values: (number | string | null | Date)[] = [];
+    const values: unknown[] = [];
 
-    if (data.name !== undefined) {
+    if (warehouse.name !== undefined) {
       sets.push(`"name" = $${idx++}`);
-      values.push(data.name);
+      values.push(warehouse.name);
     }
 
-    if (data.address !== undefined) {
+    if (warehouse.address !== undefined) {
       sets.push(`"address" = $${idx++}`);
-      values.push(data.address);
+      values.push(warehouse.address);
     }
 
-    if (data.status !== undefined) {
+    if (warehouse.status !== undefined) {
       sets.push(
         `status = $${idx++}::text`,
         `deactived_at = $${idx++}::timestamptz`
       );
-      values.push(data.status, data.status === "ACTIVE" ? null : new Date());
+      values.push(
+        warehouse.status,
+        warehouse.status === "ACTIVE" ? null : new Date()
+      );
     }
 
     values.push(warehouseId);
 
-    let queryConfig: QueryConfig;
-    let client: PoolClient | null = null;
+    let queryConfig: QueryConfig = {
+      text: `UPDATE roles SET ${sets.join(
+        ", "
+      )} WHERE id = $${idx} RETURNING *;`,
+      values,
+    };
 
-    let step = 1;
     const logService = this.log.child({
       service: "UpdateByIdService.execute",
       source: "database",
       operation: "db.transaction",
     });
+
+    let client: PoolClient | null = null;
+    let step: number = 0;
+    let maxStep: number = 0;
+
+    if (sets.length > 0) maxStep++;
+    if (packagingIds) {
+      maxStep++;
+      if (packagingIds.length > 0) maxStep++;
+    }
+
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
 
       if (sets.length > 0) {
-        queryConfig = {
-          text: `UPDATE warehouses SET ${sets.join(
-            ", "
-          )} WHERE id = $${idx} RETURNING *;`,
-          values,
-        };
         await this.pool.query<Warehouse>(queryConfig);
         logService.info(
           {
-            step: step++,
+            step: `${++step}/${maxStep}`,
             stepOperation: "db.update",
             queryConfig,
           },
-          `Cập nhật thông tin nhà kho warehouseId=${warehouseId} thành công.`
+          `[${step}/${maxStep}] Cập nhật thông tin nhà kho warehouseId=${warehouseId} thành công.`
         );
       }
 
-      if (data.packagingIds) {
-        if (data.packagingIds.length > 0) {
+      if (packagingIds) {
+        if (packagingIds.length > 0) {
           queryConfig = {
             text: `
                 DELETE FROM packaging_inventory
                 WHERE warehouse_id = $1::text 
-                  AND packaging_id NOT IN (${data.packagingIds
+                  AND packaging_id NOT IN (${packagingIds
                     .map((_, i) => {
                       return `$${i + 2}::text`;
                     })
                     .join(", ")})
                 RETURNING *;
               `,
-            values: [warehouseId, ...data.packagingIds],
+            values: [warehouseId, ...packagingIds],
           };
           // delete warehouse
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: `${++step}/${maxStep}`,
               stepOperation: "db.insert",
               queryConfig,
             },
-            `Xoá bao bì của warehouseId=${warehouseId} không có trong danh sách thành công.`
+            `[${step}/${maxStep}] Xoá bao bì của warehouseId=${warehouseId} không có trong danh sách thành công.`
           );
 
           queryConfig = {
             text: `INSERT INTO packaging_inventory (warehouse_id,packaging_id)
-            VALUES ${data.packagingIds
-              .map((_, i) => `($1, $${i + 2})`)
-              .join(", ")} 
+            VALUES ${packagingIds.map((_, i) => `($1, $${i + 2})`).join(", ")} 
             ON CONFLICT DO NOTHING;`,
-            values: [warehouseId, ...data.packagingIds],
+            values: [warehouseId, ...packagingIds],
           };
           // insert warehouse
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: `${++step}/${maxStep}`,
               stepOperation: "db.insert",
               queryConfig,
             },
-            `Thêm bao bì mới vào nhà kho warehouseId=${warehouseId} thành công.`
+            `[${step}/${maxStep}] Thêm bao bì mới vào nhà kho warehouseId=${warehouseId} thành công.`
           );
         } else {
           queryConfig = {
@@ -119,27 +129,18 @@ export default class UpdateByIdService extends BaseWarehouseService {
           await client.query(queryConfig);
           logService.info(
             {
-              step: step++,
+              step: `${++step}/${maxStep}`,
               stepOperation: "db.delete",
               queryConfig,
             },
-            `Xoá hết bao bi trong kho warehouseId=${warehouseId} thành công.`
+            `[${step}/${maxStep}] Xoá hết bao bi trong kho warehouseId=${warehouseId} thành công.`
           );
         }
       }
 
       await client.query("COMMIT");
-      logService.info(
-        `Cập nhật nhà kho warehouseId=${warehouseId} thành công.`
-      );
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
     } catch (error) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
-        }
-      }
       logService.error(
         {
           error,
@@ -155,8 +156,20 @@ export default class UpdateByIdService extends BaseWarehouseService {
             },
           },
         },
-        `Lỗi khi cập nhật nhà kho warehouseId=${warehouseId} trong database.`
+        `[${step}/${maxStep}] Lỗi khi cập nhật nhà kho warehouseId=${warehouseId} trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
+
       throw new InternalServerError();
     } finally {
       if (client) {

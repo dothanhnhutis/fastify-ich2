@@ -93,8 +93,20 @@ export default class FindRoleByIdService extends BaseUserService {
       values,
     };
     let client: PoolClient | null = null;
-    let step: number = 1;
+    let step: number = 0;
     let maxStep: number = 2;
+
+    let result: { roles: Role[]; metadata: Metadata } = {
+      roles: [],
+      metadata: {
+        totalItem: 0,
+        totalPage: 0,
+        hasNextPage: false,
+        limit: 0,
+        itemStart: 0,
+        itemEnd: 0,
+      },
+    };
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -102,47 +114,23 @@ export default class FindRoleByIdService extends BaseUserService {
         queryConfig
       );
       const totalItem = countRows[0]?.count ?? 0;
-
-      if (!totalItem) {
-        await client.query("COMMIT");
-        logService.info(
-          {
-            step: `${++step}/${--maxStep}`,
-            stepOperation: "db.select",
-            queryConfig,
-          },
-          `[${step}/${maxStep}] Có ${totalItem} kết quả.`
-        );
-        return {
-          roles: [],
-          metadata: {
-            totalItem: 0,
-            totalPage: 0,
-            hasNextPage: false,
-            limit: 0,
-            itemStart: 0,
-            itemEnd: 0,
-          },
-        };
-      }
-
       logService.info(
         {
-          step: `${++step}/${maxStep}`,
+          step: `${++step}/${totalItem === 0 ? --maxStep : maxStep}`,
           stepOperation: "db.select",
           queryConfig,
         },
         `[${step}/${maxStep}] Có ${totalItem} kết quả.`
       );
 
-      const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
+      if (totalItem > 0) {
+        const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
+        const limit = query?.limit ?? totalItem;
+        const page = query?.page ?? 1;
+        const offset = (page - 1) * limit;
 
-      const limit = query?.limit ?? totalItem;
-      const page = query?.page ?? 1;
-      const offset = (page - 1) * limit;
-
-      queryConfig = {
-        text: `
+        queryConfig = {
+          text: `
           ${cte}
           SELECT *
           ${baseSelect}
@@ -150,37 +138,35 @@ export default class FindRoleByIdService extends BaseUserService {
           ${orderByClause}
           LIMIT $${idx++}::int OFFSET $${idx}::int
         `,
-        values: [...values, limit, offset],
-      };
+          values: [...values, limit, offset],
+        };
 
-      const { rows: roles } = await client.query<Role>(queryConfig);
-      logService.info(
-        {
-          step: `${++step}/${maxStep}`,
-          stepOperation: "db.select",
-          queryConfig,
-        },
-        `[${step}/${maxStep}] Truy vấn với sắp xếp và phân trang thành công.`
-      );
+        const { rows: roles } = await client.query<Role>(queryConfig);
+        logService.info(
+          {
+            step: `${++step}/${maxStep}`,
+            stepOperation: "db.select",
+            queryConfig,
+          },
+          `[${step}/${maxStep}] Truy vấn với sắp xếp và phân trang thành công.`
+        );
 
-      const totalPage = Math.ceil(totalItem / limit);
+        const totalPage = Math.ceil(totalItem / limit);
 
+        result = {
+          roles,
+          metadata: {
+            totalItem,
+            totalPage,
+            hasNextPage: page < totalPage,
+            limit: totalItem > 0 ? limit : 0,
+            itemStart: totalItem > 0 ? (page - 1) * limit + 1 : 0,
+            itemEnd: Math.min(page * limit, totalItem),
+          },
+        };
+      }
       await client.query("COMMIT");
-      logService.info(
-        `[${step}/${maxStep}] Truy vấn truy vấn vai trò của userId=${userId} thành công.`
-      );
-
-      const result = {
-        roles,
-        metadata: {
-          totalItem,
-          totalPage,
-          hasNextPage: page < totalPage,
-          limit: totalItem > 0 ? limit : 0,
-          itemStart: totalItem > 0 ? (page - 1) * limit + 1 : 0,
-          itemEnd: Math.min(page * limit, totalItem),
-        },
-      };
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
 
       return result;
     } catch (error: unknown) {
@@ -198,7 +184,7 @@ export default class FindRoleByIdService extends BaseUserService {
             },
           },
         },
-        `[${step}/${maxStep}] Lỗi khi truy vấn vai trò của userId=${userId} database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn vai trò của userId=${userId} trong database.`
       );
       if (client) {
         try {

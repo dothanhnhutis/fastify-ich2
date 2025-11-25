@@ -3,7 +3,7 @@ import type { QueryConfig } from "pg";
 import type { UserDetail } from "../user.types";
 import BaseUserService from "./base.service";
 
-export default class FindByEmailService extends BaseUserService {
+export default class FindDetailByIdService extends BaseUserService {
   async execute(userId: string): Promise<UserDetail | null> {
     const queryConfig: QueryConfig = {
       text: `
@@ -66,6 +66,10 @@ export default class FindByEmailService extends BaseUserService {
                             r.status,
                             'deactived_at',
                             r.deactived_at,
+                            'can_delete',
+                            r.can_delete,
+                            'can_update',
+                            r.can_update,
                             'created_at',
                             r.created_at,
                             'updated_at',
@@ -115,7 +119,7 @@ export default class FindByEmailService extends BaseUserService {
     };
 
     const logService = this.log.child({
-      service: "FindByEmailService.execute",
+      service: "FindDetailByIdService.execute",
       source: "database",
       operation: "db.query",
       query: queryConfig,

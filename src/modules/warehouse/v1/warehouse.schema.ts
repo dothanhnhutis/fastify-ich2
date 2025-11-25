@@ -126,6 +126,9 @@ export const warehouseSchema = {
     params: warehouseIdParamsSchema,
     body: updateWarehouseByIdBodySchema,
   },
+  deleteById: {
+    params: warehouseIdParamsSchema,
+  },
 };
 
 export type WarehouseRequestType = {
@@ -148,5 +151,8 @@ export type WarehouseRequestType = {
   UpdateById: {
     Params: z.infer<typeof warehouseIdParamsSchema>;
     Body: z.infer<typeof updateWarehouseByIdBodySchema>;
+  };
+  DeleteById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
   };
 };

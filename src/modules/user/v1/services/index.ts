@@ -8,6 +8,8 @@ import FindByIdService from "./findById.service";
 import FindDetailByIdService from "./findDetailById.service";
 import FindManyService from "./findMany.service";
 import FindRoleByIdService from "./findRolesById.service";
+import FindWithoutPasswordByEmailService from "./findWithoutPasswordByEmail.service";
+import FindWithoutPasswordByIdService from "./findWithoutPasswordById.service";
 import UpdateAvatarByIdService from "./updateAvatarById.service";
 import UpdateByIdService from "./updateById.service";
 
@@ -17,7 +19,9 @@ import UpdateByIdService from "./updateById.service";
 export default class UserServiceV1 {
   private createService: CreateService;
   private findByIdService: FindByIdService;
+  private findWithoutPasswordByIdService: FindWithoutPasswordByIdService;
   private findByEmailService: FindByEmailService;
+  private findWithoutPasswordByEmailService: FindWithoutPasswordByEmailService;
   private findDetailByIdService: FindDetailByIdService;
   private findManyService: FindManyService;
   private findRoleByIdService: FindRoleByIdService;
@@ -30,7 +34,12 @@ export default class UserServiceV1 {
     // Khởi tạo các service con
     this.createService = new CreateService(fastify);
     this.findByIdService = new FindByIdService(fastify);
+    this.findWithoutPasswordByIdService = new FindWithoutPasswordByIdService(
+      fastify
+    );
     this.findByEmailService = new FindByEmailService(fastify);
+    this.findWithoutPasswordByEmailService =
+      new FindWithoutPasswordByEmailService(fastify);
     this.findDetailByIdService = new FindDetailByIdService(fastify);
     this.findManyService = new FindManyService(fastify);
     this.findRoleByIdService = new FindRoleByIdService(fastify);
@@ -42,8 +51,14 @@ export default class UserServiceV1 {
   async findById(userId: string) {
     return await this.findByIdService.execute(userId);
   }
+  async findWithoutPasswordById(userId: string) {
+    return await this.findWithoutPasswordByIdService.execute(userId);
+  }
   async findByEmail(email: string) {
     return await this.findByEmailService.execute(email);
+  }
+  async findWithoutPasswordByEmail(email: string) {
+    return await this.findWithoutPasswordByEmailService.execute(email);
   }
   async findDetailById(email: string) {
     return await this.findDetailByIdService.execute(email);

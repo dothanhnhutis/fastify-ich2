@@ -87,19 +87,8 @@ export default class UpdateAvatarById extends BaseUserService {
       );
 
       await client.query("COMMIT");
-      logService.info(
-        `[${step}/${maxStep}] Cập nhật ảnh đại diện userId=${userId} thành công.`
-      );
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
     } catch (error) {
-      fs.unlink(file.path, (err) => {
-        if (err) {
-          logService.error(
-            { error: err },
-            `[${step}/${maxStep}] Xoá file thât bại.`
-          );
-        }
-        logService.info(`[${step}/${maxStep}] Xoá file thanh công.`);
-      });
       logService.error(
         {
           error,
@@ -116,6 +105,15 @@ export default class UpdateAvatarById extends BaseUserService {
         },
         `[${step}/${maxStep}] Lỗi cập nhật ảnh đại diện cho userId=${userId}.`
       );
+      fs.unlink(file.path, (err) => {
+        if (err) {
+          logService.error(
+            { error: err },
+            `[${step}/${maxStep}] Xoá file thất bại.`
+          );
+        }
+        logService.info(`[${step}/${maxStep}] Xoá file thành công.`);
+      });
       if (client) {
         try {
           await client.query("ROLLBACK");

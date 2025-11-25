@@ -93,8 +93,21 @@ export default class FindManyService extends BaseWarehouseService {
       `,
       values,
     };
-    let step = 1;
+    let step = 0;
     let client: PoolClient | null = null;
+    let maxStep: number = 2;
+
+    let result: { warehouses: Warehouse[]; metadata: Metadata } = {
+      warehouses: [],
+      metadata: {
+        totalItem: 0,
+        totalPage: 0,
+        hasNextPage: false,
+        limit: 0,
+        itemStart: 0,
+        itemEnd: 0,
+      },
+    };
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -106,79 +119,57 @@ export default class FindManyService extends BaseWarehouseService {
 
       logService.info(
         {
-          step: step++,
+          step: `${++step}/${totalItem === 0 ? --maxStep : maxStep}`,
           stepOperation: "db.select",
           queryConfig,
         },
-        `Có ${totalItem} kết quả.`
+        `[${step}/${maxStep}] Có ${totalItem} kết quả.`
       );
 
-      if (!totalItem) {
-        await client.query("COMMIT");
-        logService.info("Truy vấn thành công.");
-        return {
-          warehouses: [],
-          metadata: {
-            totalItem: 0,
-            totalPage: 0,
-            hasNextPage: false,
-            limit: 0,
-            itemStart: 0,
-            itemEnd: 0,
-          },
-        };
-      }
+      if (totalItem > 0) {
+        const orderByClause = buildOrderBy(sortFieldMap, query.sort);
 
-      const orderByClause = buildOrderBy(sortFieldMap, query.sort);
+        const limit = query.limit ?? totalItem;
+        const page = query.page ?? 1;
+        const offset = (page - 1) * limit;
 
-      const limit = query.limit ?? totalItem;
-      const page = query.page ?? 1;
-      const offset = (page - 1) * limit;
-
-      queryConfig = {
-        text: `
+        queryConfig = {
+          text: `
           ${baseSelect}
           ${whereClause}
           ${groupByClause}
           ${orderByClause}
           LIMIT $${idx++}::int OFFSET $${idx}::int
         `,
-        values: [...values, limit, offset],
-      };
+          values: [...values, limit, offset],
+        };
 
-      const { rows: warehouses } = await client.query<Warehouse>(queryConfig);
-      logService.info(
-        {
-          step: step++,
-          stepOperation: "db.select",
-          queryConfig,
-        },
-        "Truy vấn với sắp xếp và phân trang thành công."
-      );
-      const totalPage = Math.ceil(totalItem / limit) || 0;
-      await client.query("COMMIT");
-
-      logService.info("Truy vấn thành công.");
-
-      return {
-        warehouses,
-        metadata: {
-          totalItem,
-          totalPage,
-          hasNextPage: page < totalPage,
-          limit: totalItem > 0 ? limit : 0,
-          itemStart: totalItem > 0 ? (page - 1) * limit + 1 : 0,
-          itemEnd: Math.min(page * limit, totalItem),
-        },
-      };
-    } catch (error) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
-        }
+        const { rows: warehouses } = await client.query<Warehouse>(queryConfig);
+        logService.info(
+          {
+            step: step++,
+            stepOperation: "db.select",
+            queryConfig,
+          },
+          "Truy vấn với sắp xếp và phân trang thành công."
+        );
+        const totalPage = Math.ceil(totalItem / limit) || 0;
+        result = {
+          warehouses,
+          metadata: {
+            totalItem,
+            totalPage,
+            hasNextPage: page < totalPage,
+            limit: totalItem > 0 ? limit : 0,
+            itemStart: totalItem > 0 ? (page - 1) * limit + 1 : 0,
+            itemEnd: Math.min(page * limit, totalItem),
+          },
+        };
       }
+      await client.query("COMMIT");
+      logService.info("Commit thành công.");
+      return result;
+    } catch (error) {
       logService.error(
         {
           error,
@@ -194,8 +185,19 @@ export default class FindManyService extends BaseWarehouseService {
             },
           },
         },
-        `Lỗi khi tạo người dùng mới trong database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn nhà kho trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {

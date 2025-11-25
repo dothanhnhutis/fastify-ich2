@@ -7,73 +7,11 @@ export default class FindByIdService extends BaseUserService {
   async execute(userId: string): Promise<UserPassword | null> {
     const queryConfig: QueryConfig = {
       text: `
-      SELECT
-          u.*,
-          COUNT(r.id) FILTER (
-              WHERE
-                  r.id IS NOT NULL
-                  AND r.status = 'ACTIVE'
-          )::int AS role_count,
-          CASE
-              WHEN av.file_id IS NOT NULL THEN 
-                json_build_object(
-                    'id',
-                    av.file_id,
-                    'width',
-                    av.width,
-                    'height',
-                    av.height,
-                    'is_primary',
-                    av.is_primary,
-                    'original_name',
-                    f.original_name,
-                    'mime_type',
-                    f.mime_type,
-                    'destination',
-                    f.destination,
-                    'file_name',
-                    f.file_name,
-                    'size',
-                    f.size,
-                    'created_at',
-                    to_char(
-                        av.created_at AT TIME ZONE 'UTC',
-                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
-                      )
-                )
-              ELSE null
-          END 
-          AS avatar
+      SELECT *
       FROM
-          users u
-          LEFT JOIN user_roles ur ON ur.user_id = u.id
-          LEFT JOIN roles r ON ur.role_id = r.id
-          LEFT JOIN user_avatars av ON av.user_id = u.id
-          AND av.deleted_at IS NULL
-          AND av.is_primary = true
-          LEFT JOIN files f ON f.id = av.file_id
-          AND av.deleted_at IS NULL
+          users 
       WHERE
-          u.id = $1::text
-      GROUP BY
-          u.id,
-          u.email,
-          u.password_hash,
-          u.username,
-          u.status,
-          u.deactived_at,
-          u.created_at,
-          u.updated_at,
-          av.file_id,
-          av.width,
-          av.height,
-          av.is_primary,
-          av.created_at,
-          f.original_name,
-          f.mime_type,
-          f.destination,
-          f.file_name,
-          f.size
+          id = $1::text
       LIMIT
           1;
       `,

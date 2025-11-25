@@ -17,13 +17,13 @@ const createNewRoleBodySchema = z.object({
       z.string("Quyền truy cập phải là chuỗi."),
       "Danh sách quyền truy cập phải là mãng chuỗi."
     )
-    .default([]),
+    .min(1, "Danh sách quyền truy cập không được trống."),
   userIds: z
     .array(
       z.string("Tài khoản phải là chuỗi."),
       "Danh sách tài khoản phải là mãng chuỗi."
     )
-    .default([]),
+    .optional(),
 });
 
 const updateRoleByIdBodySchema = z
@@ -33,10 +33,12 @@ const updateRoleByIdBodySchema = z
       .trim()
       .min(1, "Tên vai trò không được trống"),
     description: z.string("Mô tả vai trò phải là chuỗi."),
-    permissions: z.array(
-      z.string("Quyền truy cập phải là chuỗi."),
-      "Danh sách quyền truy cập phải là mãng chuỗi."
-    ),
+    permissions: z
+      .array(
+        z.string("Quyền truy cập phải là chuỗi."),
+        "Danh sách quyền truy cập phải là mãng chuỗi."
+      )
+      .min(1, "Danh sách quyền truy cập không được trống."),
     status: z.enum(
       ["ACTIVE", "INACTIVE"],
       "Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'."
@@ -95,7 +97,7 @@ export type RoleRequestType = {
     Params: z.infer<typeof roleIdParamSchema>;
     Body: z.infer<typeof updateRoleByIdBodySchema>;
   };
-  DeletaById: {
+  DeleteById: {
     Params: z.infer<typeof roleIdParamSchema>;
   };
 };

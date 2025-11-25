@@ -4,19 +4,17 @@ import type { Warehouse } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
 
 export default class DeleteByIdService extends BaseWarehouseService {
-  async execute(warehouseId: string): Promise<Warehouse> {
+  async execute(warehouseId: string) {
     const queryConfig: QueryConfig = {
       text: `DELETE FROM warehouses WHERE id = $1 RETURNING *;`,
       values: [warehouseId],
     };
-
     const logService = this.log.child({
       service: "DeleteByIdService.execute",
       source: "database",
       operation: "db.delete",
-      query: queryConfig,
+      queryConfig,
     });
-
     try {
       const { rows } = await this.pool.query<Warehouse>(queryConfig);
       logService.info(`Xoá nhà kho warehouseId=${warehouseId} thành công.`);
@@ -25,6 +23,7 @@ export default class DeleteByIdService extends BaseWarehouseService {
       logService.error(
         {
           error,
+          // err: isPostgresError(err) ? err : String(err),
           database: {
             host: this.pool.options.host,
             port: this.pool.options.port,
@@ -36,7 +35,7 @@ export default class DeleteByIdService extends BaseWarehouseService {
             },
           },
         },
-        `Lỗi khi truy vấn thông tin chi tiết nhà kho warehouseId=${warehouseId} trong database.`
+        `Lỗi khi xoá nhà kho warehouseId=${warehouseId} trong database.`
       );
       throw new InternalServerError();
     }

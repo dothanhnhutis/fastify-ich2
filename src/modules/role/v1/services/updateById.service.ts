@@ -11,30 +11,32 @@ export default class UpdateByIdService extends BaseRoleService {
   ): Promise<void> {
     if (Object.keys(data).length === 0) return;
 
+    const { userIds, ...role } = data;
+
     const sets: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.name !== undefined) {
+    if (role.name !== undefined) {
       sets.push(`name = $${idx++}::text`);
-      values.push(data.name);
+      values.push(role.name);
     }
-    if (data.description !== undefined) {
+    if (role.description !== undefined) {
       sets.push(`description = $${idx++}::text`);
-      values.push(data.description);
+      values.push(role.description);
     }
-    if (data.permissions !== undefined) {
+    if (role.permissions !== undefined) {
       sets.push(`permissions = $${idx++}::text[]`);
-      values.push(data.permissions);
+      values.push(role.permissions);
     }
-    if (data.status !== undefined) {
+    if (role.status !== undefined) {
       sets.push(
         `status = $${idx++}::text`,
         `deactived_at = ${
-          data.status === "ACTIVE" ? `$${idx++}` : `$${idx++}::timestamptz`
+          role.status === "ACTIVE" ? `$${idx++}` : `$${idx++}::timestamptz`
         }`
       );
-      values.push(data.status, data.status === "ACTIVE" ? null : new Date());
+      values.push(role.status, role.status === "ACTIVE" ? null : new Date());
     }
 
     values.push(roleId);
@@ -53,9 +55,15 @@ export default class UpdateByIdService extends BaseRoleService {
     });
 
     let client: PoolClient | null = null;
+    let step: number = 0;
+    let maxStep: number = 0;
 
-    let step = 0;
-    const maxStep = this.caculMaxStep(data);
+    if (sets.length > 0) maxStep++;
+    if (userIds) {
+      maxStep++;
+      if (userIds.length > 0) maxStep++;
+    }
+    if (maxStep === 0) return;
 
     try {
       client = await this.pool.connect();
@@ -73,8 +81,8 @@ export default class UpdateByIdService extends BaseRoleService {
         );
       }
 
-      if (data.userIds)
-        if (data.userIds.length === 0) {
+      if (userIds)
+        if (userIds.length === 0) {
           queryConfig = {
             text: `
               DELETE FROM user_roles
@@ -103,7 +111,7 @@ export default class UpdateByIdService extends BaseRoleService {
                   AND user_id != ALL($2::text[])
               RETURNING *;
             `,
-            values: [roleId, data.userIds],
+            values: [roleId, userIds],
           };
           // xoá
           await client.query(queryConfig);
@@ -118,12 +126,10 @@ export default class UpdateByIdService extends BaseRoleService {
           queryConfig = {
             text: `
               INSERT INTO user_roles (role_id, user_id) 
-              VALUES ${data.userIds
-                .map((_, idx) => `($1, $${idx + 2})`)
-                .join(", ")}
+              VALUES ${userIds.map((_, idx) => `($1, $${idx + 2})`).join(", ")}
               ON CONFLICT DO NOTHING;
             `,
-            values: [roleId, ...data.userIds],
+            values: [roleId, ...userIds],
           };
           // tạo mới
           await client.query(queryConfig);
@@ -138,9 +144,7 @@ export default class UpdateByIdService extends BaseRoleService {
         }
 
       await client.query("COMMIT");
-      logService.info(
-        `[${step}/${maxStep}] Cập nhật vai trò roleId=${roleId} thành công.`
-      );
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
     } catch (error) {
       logService.error(
         {
@@ -176,17 +180,5 @@ export default class UpdateByIdService extends BaseRoleService {
         client.release();
       }
     }
-  }
-
-  private caculMaxStep(data: RoleRequestType["UpdateById"]["Body"]): number {
-    let step: number = 0;
-    if (Object.keys(data).length === 0) return step;
-    const { userIds, ...role } = data;
-    if (Object.keys(role).length > 0) step++;
-    if (userIds) {
-      step++;
-      if (userIds.length > 0) step++;
-    }
-    return step;
   }
 }

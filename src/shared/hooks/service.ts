@@ -1,6 +1,7 @@
 import RoleServiceV1 from "@modules/role/v1/services";
 import SessionServiceV1 from "@modules/session/v1/services";
 import UserServiceV1 from "@modules/user/v1/services";
+import WarehouseServiceV1 from "@modules/warehouse/v1/services";
 import type { FastifyInstance } from "fastify";
 
 declare module "fastify" {
@@ -14,6 +15,9 @@ declare module "fastify" {
       };
       role: {
         v1: RoleServiceV1;
+      };
+      warehouse: {
+        v1: WarehouseServiceV1;
       };
     };
   }
@@ -31,6 +35,9 @@ export const serviceHook = (fastify: FastifyInstance) => {
       },
       role: {
         v1: new RoleServiceV1(request),
+      },
+      warehouse: {
+        v1: new WarehouseServiceV1(request),
       },
     };
   });

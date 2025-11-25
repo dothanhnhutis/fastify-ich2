@@ -10,9 +10,11 @@ export default {
   SERVER_URL: process.env.SERVER_URL || "http://localhost:4000",
   DEBUG: process.env.DEBUG === "true",
   // Database
-  DATABASE_URL: process.env.DATABASE_URL || "",
+  DATABASE_URL:
+    process.env.DATABASE_URL ||
+    "postgres://admin:secret@localhost:5432/pgdb?schema=public",
   // Redis
-  REDIS_HOST: process.env.REDIS_HOST || "",
+  REDIS_HOST: process.env.REDIS_HOST || "localhost",
   REDIS_PORT: parseInt(process.env.REDIS_PORT || "6379", 10),
   REDIS_TTL: parseInt(process.env.REDIS_TTL || "500", 10),
   // RabbitMQ

@@ -22,10 +22,11 @@ export default class CreateService extends BaseUserService {
 
     const baseInsert =
       "INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *;";
+    const values: unknown[] = [data.email, data.username];
 
     let queryConfig: QueryConfig = {
       text: baseInsert,
-      values: [data.email, data.username, password_hash],
+      values: [...values, password_hash],
     };
 
     try {
@@ -39,7 +40,7 @@ export default class CreateService extends BaseUserService {
           stepOperation: "db.insert",
           queryConfig: {
             text: baseInsert,
-            values: [data.email, data.username, "***"],
+            values: [...values, "***"],
           },
         },
         `[${step}/${maxStep}] Tạo tài khoản mới thành công.`
@@ -70,9 +71,7 @@ export default class CreateService extends BaseUserService {
           `[${step}/${maxStep}] Tạo các vai trò cho userId=${userRow[0].id} thành công.`
         );
       }
-
       const channel = this.amqp.getChannel("publish-user-channel");
-
       channel.publish(
         "user-mail-direct",
         "create-new-user",
@@ -93,7 +92,7 @@ export default class CreateService extends BaseUserService {
       );
 
       await client.query("COMMIT");
-      logService.info(`[${step}/${maxStep}] Tạo tài khoản mới thành công.`);
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
 
       return userRow[0];
     } catch (error) {
@@ -117,10 +116,11 @@ export default class CreateService extends BaseUserService {
       if (client) {
         try {
           await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
         } catch (rollbackErr) {
           logService.error(
             { error: rollbackErr },
-            `[${step}/${maxStep}] Rollback failed`
+            `[${step}/${maxStep}] Rollback thất bại.`
           );
         }
       }

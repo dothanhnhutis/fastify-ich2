@@ -10,7 +10,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: warehouseSchema.query,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:warehouse:*"]),
+        // checkPermissionMiddleware(["read:warehouse"]),
       ],
     },
     WarehouseController.query
@@ -22,7 +22,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: warehouseSchema.getDetailById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:warehouse:*"]),
+        // checkPermissionMiddleware(["read:warehouse"]),
       ],
     },
     WarehouseController.getDetailById
@@ -34,7 +34,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: warehouseSchema.getPackagingsById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:warehouse:*"]),
+        // checkPermissionMiddleware(["read:warehouse"]),
       ],
     },
     WarehouseController.getPackagingsById
@@ -46,7 +46,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: warehouseSchema.getById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:warehouse:id"]),
+        // checkPermissionMiddleware(["read:warehouse"]),
       ],
     },
     WarehouseController.getById

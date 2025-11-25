@@ -1,3 +1,5 @@
+import { Image } from "@modules/shared/file/file.shared.types";
+import type { Metadata } from "@modules/shared/types";
 import type { WarehouseRequestType } from "./warehouse.schema";
 
 export type Warehouse = {
@@ -15,10 +17,11 @@ export type PackagingAtWarehouse = {
   id: string;
   name: string;
   min_stock_level: number;
-  unit: string;
+  unit: "PIECE" | "CARTON";
   pcs_ctn: number | null;
   status: string;
   deactived_at: Date | null;
+  // image: Image;
   quantity: number;
   created_at: Date;
   updated_at: Date;

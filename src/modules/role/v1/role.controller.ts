@@ -64,7 +64,7 @@ export const RoleController = {
     req: FastifyRequest<RoleRequestType["Create"]>,
     reply: FastifyReply
   ) {
-    if (req.body.userIds.length > 0) {
+    if (req.body.userIds && req.body.userIds.length > 0) {
       const {
         users,
         metadata: { totalItem },
@@ -80,6 +80,7 @@ export const RoleController = {
         );
       }
     }
+
     const role = await req.services.role.v1.create(req.body);
 
     reply.code(StatusCodes.OK).send({
@@ -123,7 +124,7 @@ export const RoleController = {
   },
 
   async deleteById(
-    req: FastifyRequest<RoleRequestType["DeletaById"]>,
+    req: FastifyRequest<RoleRequestType["DeleteById"]>,
     reply: FastifyReply
   ) {
     const role = await req.services.role.v1.findById(req.params.id);

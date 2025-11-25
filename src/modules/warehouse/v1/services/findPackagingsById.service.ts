@@ -1,13 +1,33 @@
 import type { PoolClient, QueryConfig } from "pg";
 import type { WarehouseRequestType } from "../warehouse.schema";
 import BaseWarehouseService from "./base.service";
+import { PackagingAtWarehouse } from "../warehouse.types";
+import { Metadata } from "@modules/shared/types";
+import { InternalServerError } from "@shared/utils/error-handler";
+import { buildOrderBy } from "@shared/utils/helper";
 
-export class FindPackagingById extends BaseWarehouseService {
+const sortFieldMap: Record<string, string> = {
+  name: "name",
+  min_stock_level: "min_stock_level",
+  unit: "unit",
+  pcs_ctn: "pcs_ctn",
+  status: "status",
+  deactived_at: "deactived_at",
+  quantity: "quantity",
+  created_at: "created_at",
+  updated_at: "updated_at",
+};
+
+export class FindPackagingsByIdService extends BaseWarehouseService {
   async execute(
     warehouseId: string,
     query?: WarehouseRequestType["GetPackagingsById"]["Querystring"]
-  ) {
-    // CTE chung
+  ): Promise<{ packagings: PackagingAtWarehouse[]; metadata: Metadata }> {
+    const logService = this.log.child({
+      service: "FindPackagingById.execute",
+      source: "database",
+      operation: "db.transaction",
+    });
     const cte = `
       WITH packagings AS (
         SELECT
@@ -23,16 +43,12 @@ export class FindPackagingById extends BaseWarehouseService {
       )
     `;
 
-    // base SELECT
     const baseSelect = `FROM packagings`;
 
     const where: string[] = [];
     const values: (string | number)[] = [warehouseId];
     let idx = 2;
 
-    // -----------------------
-    // Build WHERE
-    // -----------------------
     if (query) {
       if (query.name !== undefined) {
         where.push(`name ILIKE $${idx}::text`);
@@ -74,96 +90,82 @@ export class FindPackagingById extends BaseWarehouseService {
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-    // -----------------------
-    // 1) Query đếm
-    // -----------------------
-    const countQuery: QueryConfig = {
+    let queryConfig: QueryConfig = {
       text: `
         ${cte}
-        SELECT COUNT(*) AS count
+        SELECT COUNT(*)::int AS count
         ${baseSelect}
         ${whereClause}
       `,
       values: [...values],
     };
     let client: PoolClient | null = null;
+    let step: number = 0;
+    let maxStep: number = 2;
+
+    let result: { packagings: PackagingAtWarehouse[]; metadata: Metadata } = {
+      packagings: [],
+      metadata: {
+        totalItem: 0,
+        totalPage: 0,
+        hasNextPage: false,
+        limit: 0,
+        itemStart: 0,
+        itemEnd: 0,
+      },
+    };
 
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
-      return await this.db.transaction(async (client) => {
-        const { rows } = await client.query<{ count: string }>(countQuery);
-        const totalItem = parseInt(rows[0]?.count ?? "0", 10);
+      const { rows: countRows } = await client.query<{ count: number }>(
+        queryConfig
+      );
+      const totalItem = countRows[0]?.count ?? 0;
+      logService.info(
+        {
+          step: `${++step}/${totalItem === 0 ? --maxStep : maxStep}`,
+          stepOperation: "db.select",
+          queryConfig,
+        },
+        `[${step}/${maxStep}] Có ${totalItem} kết quả.`
+      );
 
-        // Nếu không có item nào thì khỏi query data
-        if (!totalItem) {
-          await client.query("COMMIT");
-          return {
-            packagings: [] as WarehouseDetail["packagings"],
-            metadata: {
-              totalItem: 0,
-              totalPage: 0,
-              hasNextPage: false,
-              limit: 0,
-              itemStart: 0,
-              itemEnd: 0,
-            },
-          };
-        }
+      if (totalItem > 0) {
+        const orderByClause = buildOrderBy(sortFieldMap, query?.sort);
 
-        // -----------------------
-        // 2) ORDER BY
-        // -----------------------
-        let orderByClause = "";
-        if (query?.sort && query.sort.length > 0) {
-          const uniqueField = query.sort.reduce<Record<string, string>>(
-            (prev, curr) => {
-              const [field, direction = "ASC"] = curr.split(".");
-              // đơn giản, bạn có thể thêm whitelist field + direction ở đây
-              prev[field] = direction.toUpperCase() === "DESC" ? "DESC" : "ASC";
-              return prev;
-            },
-            {}
-          );
-
-          const orderBy = Object.entries(uniqueField)
-            .map(([field, direction]) => `${field} ${direction}`)
-            .join(", ");
-
-          orderByClause = `ORDER BY ${orderBy}`;
-        }
-
-        // -----------------------
-        // 3) LIMIT / OFFSET
-        // -----------------------
         const limit = query?.limit ?? totalItem;
         const page = query?.page ?? 1;
         const offset = (page - 1) * limit;
 
-        const valuesData = [...values, limit, offset];
-        const limitIndex = idx;
-        const offsetIndex = idx + 1;
-
-        const dataQuery: QueryConfig = {
+        queryConfig = {
           text: `
-            ${cte}
-            SELECT *
-            ${baseSelect}
-            ${whereClause}
-            ${orderByClause}
-            LIMIT $${limitIndex}::int OFFSET $${offsetIndex}::int
-          `,
-          values: valuesData,
+          ${cte}
+          SELECT *
+          ${baseSelect}
+          ${whereClause}
+          ${orderByClause}
+          LIMIT $${idx++}::int OFFSET $${idx}::int
+        `,
+          values: [...values, limit, offset],
         };
 
-        const { rows: packagings } = await client.query<
-          WarehouseDetail["packagings"][number]
-        >(dataQuery);
+        const { rows: packagings } = await client.query<PackagingAtWarehouse>(
+          queryConfig
+        );
 
-        const totalPage = Math.ceil(totalItem / limit) || 0;
-        await client.query("COMMIT");
+        logService.info(
+          {
+            step: `${++step}/${maxStep}`,
+            stepOperation: "db.select",
+            queryConfig,
+          },
+          `[${step}/${maxStep}] Truy vấn với sắp xếp và phân trang thành công.`
+        );
 
-        return {
+        const totalPage = Math.ceil(totalItem / limit);
+
+        result = {
           packagings,
           metadata: {
             totalItem,
@@ -174,16 +176,13 @@ export class FindPackagingById extends BaseWarehouseService {
             itemEnd: Math.min(page * limit, totalItem),
           },
         };
-      });
-    } catch (error: unknown) {
-      if (client) {
-        try {
-          await client.query("ROLLBACK");
-          logService.info("Rollback thành công.");
-        } catch (rollbackErr) {
-          logService.error({ error: rollbackErr }, "Rollback failed");
-        }
       }
+
+      await client.query("COMMIT");
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
+
+      return result;
+    } catch (error: unknown) {
       logService.error(
         {
           error,
@@ -198,8 +197,19 @@ export class FindPackagingById extends BaseWarehouseService {
             },
           },
         },
-        `Lỗi khi truy vấn trong database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn bao bì của warehouseId=${warehouseId} trong database.`
       );
+      if (client) {
+        try {
+          await client.query("ROLLBACK");
+          logService.info(`[${step}/${maxStep}] Rollback thành công.`);
+        } catch (rollbackErr) {
+          logService.error(
+            { error: rollbackErr },
+            `[${step}/${maxStep}] Rollback thất bại.`
+          );
+        }
+      }
       throw new InternalServerError();
     } finally {
       if (client) {

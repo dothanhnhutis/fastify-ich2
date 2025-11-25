@@ -33,15 +33,15 @@ export default class CreateService extends BaseRoleService {
       const { rows } = await client.query<Role>(queryConfig);
       logService.info(
         {
-          step: ++step,
+          step: `${++step}/${
+            !data.userIds || data.userIds.length === 0 ? --maxStep : maxStep
+          }`,
           stepOperation: "db.insert",
           queryConfig,
         },
-        `[${step}/${
-          data.userIds.length > 0 ? --maxStep : maxStep
-        }]Tạo vai trò mới thành công.`
+        `[${step}/${maxStep}] Tạo vai trò mới thành công.`
       );
-      if (data.userIds.length > 0) {
+      if (data.userIds && data.userIds.length > 0) {
         const queryConfig: QueryConfig = {
           text: `INSERT INTO user_roles (role_id, user_id) VALUES ${data.userIds
             .map((_, idx) => `($1, $${idx + 2})`)
@@ -60,7 +60,7 @@ export default class CreateService extends BaseRoleService {
       }
 
       await client.query("COMMIT");
-      logService.info(`[${step}/${maxStep}] Tạo vai trò mới thành công.`);
+      logService.info(`[${step}/${maxStep}] Commit thành công.`);
 
       return rows[0];
     } catch (error) {

@@ -22,15 +22,14 @@ export const SuperUserController = {
     request: FastifyRequest<UserRequestType["GetById"]>,
     reply: FastifyReply
   ) {
-    const existsUser = await request.services.user.v1.findById(
+    const existsUser = await request.services.user.v1.findWithoutPasswordById(
       request.params.id
     );
     if (!existsUser) throw new BadRequestError("Người dùng không tồn tại.");
-    const { password_hash: _, ...data } = existsUser;
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
       message: `Có 1 kết quả`,
-      data,
+      data: existsUser,
     });
   },
 

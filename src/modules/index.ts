@@ -4,6 +4,7 @@ import fileRoutes from "./file";
 import roleRoutes from "./role";
 import sessionRoutes from "./session";
 import userRoutes from "./user";
+import warehouseRoutes from "./warehouse";
 
 export default async function appRoutes(fastify: FastifyInstance) {
   fastify.get("/health", (_: FastifyRequest, reply: FastifyReply) => {
@@ -17,4 +18,5 @@ export default async function appRoutes(fastify: FastifyInstance) {
   fastify.register(userRoutes);
   fastify.register(roleRoutes);
   fastify.register(fileRoutes);
+  fastify.register(warehouseRoutes);
 }
