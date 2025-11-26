@@ -8,4 +8,6 @@ logs
 node_modules
 uploads
 
+init/.idea
+
 prisma/migrations
