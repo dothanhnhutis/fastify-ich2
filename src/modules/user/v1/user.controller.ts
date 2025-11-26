@@ -2,7 +2,7 @@ import env from "@shared/config/env";
 import { BadRequestError, PermissionError } from "@shared/utils/error-handler";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { StatusCodes } from "http-status-codes";
-import type { UserRequestType } from "./user.schema";
+import type { UserRequestType } from "./user.types";
 
 // Admin
 export const SuperUserController = {

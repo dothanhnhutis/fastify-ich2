@@ -1,12 +1,14 @@
-import { queryStringRolesSchema } from "@modules/shared/role/role.shared.schema";
-import { queryStringUsersSchema } from "@modules/shared/user/user.shared.schema";
+import {
+  queryStringRolesSchema,
+  queryStringUsersSchema,
+} from "@modules/shared/schema";
 import * as z from "zod/v4";
 
-const userIdParamSchema = z.object({
+export const userIdParamSchema = z.object({
   id: z.string(),
 });
 
-const createBodySchema = z
+export const createBodySchema = z
   .object({
     username: z
       .string("Tên người dùng phải là chuỗi.")
@@ -37,7 +39,7 @@ const createBodySchema = z
   })
   .strict();
 
-const updateByIdBodySchema = z
+export const updateByIdBodySchema = z
   .object({
     status: z.enum(
       ["ACTIVE", "INACTIVE"],
@@ -55,7 +57,7 @@ const updateByIdBodySchema = z
   })
   .partial();
 
-const updateBodySchema = updateByIdBodySchema.pick({ username: true });
+export const updateBodySchema = updateByIdBodySchema.pick({ username: true });
 
 export const userSchema = {
   query: {
@@ -81,26 +83,4 @@ export const userSchema = {
     params: userIdParamSchema,
     body: updateByIdBodySchema,
   },
-};
-
-export type UserRequestType = {
-  Query: {
-    Querystring: z.infer<typeof queryStringUsersSchema>;
-  };
-  GetById: { Params: z.infer<typeof userIdParamSchema> };
-  GetRolesById: {
-    Params: z.infer<typeof userIdParamSchema>;
-    Querystring: z.infer<typeof queryStringRolesSchema>;
-  };
-  GetDetailById: { Params: z.infer<typeof userIdParamSchema> };
-  Create: {
-    Body: z.infer<typeof createBodySchema>;
-  };
-  UpdateById: {
-    Params: z.infer<typeof userIdParamSchema>;
-    Body: z.infer<typeof updateByIdBodySchema>;
-  };
-  Update: {
-    Body: z.infer<typeof updateBodySchema>;
-  };
 };

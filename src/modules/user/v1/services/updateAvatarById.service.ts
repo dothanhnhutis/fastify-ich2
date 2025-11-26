@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { FileUpload } from "@modules/shared/file/file.shared.types";
+import type { FileUpload } from "@modules/file/v1/file.types";
 import type { MulterFile } from "@shared/middleware/multer";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";

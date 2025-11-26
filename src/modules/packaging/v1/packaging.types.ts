@@ -1,52 +1,73 @@
-import type { Image } from "@modules/shared/file/file.shared.types";
-import type { MulterFile } from "@shared/middleware/multer";
-import type { PackagingRequestType } from "./packaging.schema";
-
-export type Packaging = {
-  id: string;
-  name: string;
-  min_stock_level: number;
-  unit: "PIECE" | "CARTON";
-  pcs_ctn: number | null;
-  status: string;
-  deactived_at: Date | null;
-  image: Image;
-  warehouse_count: number;
-  total_quantity: number;
-  created_at: Date;
-  updated_at: Date;
-};
-
-export type StockAt = {};
+import type { Packaging, Warehouse } from "@modules/shared/types";
+import type z from "zod/v4";
+import type {
+  createPackagingBodySchema,
+  packagingParamsSchema,
+  queryStringPackagingsSchema,
+  queryStringWarehousesByPackagingIdSchema,
+  updatePackagingByIdBodySchema,
+} from "./packaging.schema";
 
 export type PackagingDetail = Packaging & {
+  total_quantity: number;
+  warehouse_count: number;
   warehouses: StockAt[];
 };
 
-export interface IPackagingRepository {
-  findPackagings(
-    query: PackagingRequestType["Query"]["Querystring"]
-  ): Promise<{ packagings: Packaging[]; metadata: Metadata }>;
+export type StockAt = Warehouse & {
+  quantity: number;
+};
 
-  findPackagingById(packagingId: string): Promise<Packaging | null>;
+export type PackagingRequestType = {
+  Query: {
+    Querystring: z.infer<typeof queryStringPackagingsSchema>;
+  };
+  GetById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+  };
+  GetWarehousesById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+    Querystring: z.infer<typeof queryStringWarehousesByPackagingIdSchema>;
+  };
+  GetDetailById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+  };
+  Create: {
+    Body: z.infer<typeof createPackagingBodySchema>;
+  };
+  UpdateById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+    Body: z.infer<typeof updatePackagingByIdBodySchema>;
+  };
+  UpdateImageById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+  };
+};
 
-  findWarehousesByPackagingId(
-    packagingId: string,
-    query?: PackagingRequestType["GetWarehousesById"]["Querystring"]
-  ): Promise<{ warehouses: StockAt[]; metadata: Metadata }>;
+// export interface IPackagingRepository {
+//   findPackagings(
+//     query: PackagingRequestType["Query"]["Querystring"]
+//   ): Promise<{ packagings: Packaging[]; metadata: Metadata }>;
 
-  findPackagingDetailById(packagingId: string): Promise<PackagingDetail | null>;
+//   findPackagingById(packagingId: string): Promise<Packaging | null>;
 
-  createNewPackaging(
-    data: PackagingRequestType["Create"]["Body"]
-  ): Promise<Packaging>;
+//   findWarehousesByPackagingId(
+//     packagingId: string,
+//     query?: PackagingRequestType["GetWarehousesById"]["Querystring"]
+//   ): Promise<{ warehouses: StockAt[]; metadata: Metadata }>;
 
-  updatePackagingById(
-    packagingId: string,
-    data: PackagingRequestType["UpdateById"]["Body"]
-  ): Promise<void>;
+//   findPackagingDetailById(packagingId: string): Promise<PackagingDetail | null>;
 
-  updateImageById(id: string, file: MulterFile, userId: string): Promise<void>;
+//   createNewPackaging(
+//     data: PackagingRequestType["Create"]["Body"]
+//   ): Promise<Packaging>;
 
-  deletePackagingById(packagingId: string): Promise<Packaging>;
-}
+//   updatePackagingById(
+//     packagingId: string,
+//     data: PackagingRequestType["UpdateById"]["Body"]
+//   ): Promise<void>;
+
+//   updateImageById(id: string, file: MulterFile, userId: string): Promise<void>;
+
+//   deletePackagingById(packagingId: string): Promise<Packaging>;
+// }

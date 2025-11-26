@@ -1,11 +1,11 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
+import type { Role } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";
 import type { RoleRequestType } from "../role.schema";
 import BaseRoleService from "./base.service";
 
 export default class CreateService extends BaseRoleService {
-  async execute(data: RoleRequestType["Create"]["Body"]) {
+  async execute(data: RoleRequestType["Create"]["Body"]): Promise<Role> {
     const logService = this.log.child({
       service: "CreateService.execute",
       source: "database",

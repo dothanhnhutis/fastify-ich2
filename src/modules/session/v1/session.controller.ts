@@ -2,7 +2,7 @@ import { BadRequestError, PermissionError } from "@shared/utils/error-handler";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { StatusCodes } from "http-status-codes";
 import BaseSessionService from "./services/base.service";
-import type { SessionRequestType } from "./session.schema";
+import type { SessionRequestType } from "./session.types";
 
 export const SessionController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {

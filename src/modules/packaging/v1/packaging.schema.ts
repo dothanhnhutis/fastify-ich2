@@ -1,12 +1,12 @@
+import z from "zod/v4";
 import {
   buildSortField,
   queryParamToArray,
   queryParamToString,
   queryStringSchema,
-} from "@shared/utils/validate";
-import z from "zod/v4";
+} from "../../shared/schema";
 
-const packagingParamsSchema = z.object({
+export const packagingParamsSchema = z.object({
   id: z.string(),
 });
 
@@ -20,7 +20,7 @@ const sortWarehouseEnum = buildSortField([
   "quantity",
 ]);
 
-const queryStringWarehousesByPackagingIdSchema = queryStringSchema
+export const queryStringWarehousesByPackagingIdSchema = queryStringSchema
   .extend({
     name: queryParamToString.pipe(z.string("Tên kho hàng phải là chuỗi.")),
     address: queryParamToString.pipe(z.string("Địa chỉ kho phải là chuỗi.")),
@@ -54,7 +54,7 @@ const sortEnum = buildSortField([
   "total_quantity",
 ]);
 
-const queryStringPackagingsSchema = queryStringSchema
+export const queryStringPackagingsSchema = queryStringSchema
   .extend({
     name: queryParamToString.pipe(z.string("Tên bao bì phải là chuỗi.")),
     unit: queryParamToString.pipe(
@@ -117,12 +117,12 @@ const createPackagingCartonBodySchema = z
   })
   .strict();
 
-const createPackagingBodySchema = z.discriminatedUnion("unit", [
+export const createPackagingBodySchema = z.discriminatedUnion("unit", [
   createPackagingPieceBodySchema,
   createPackagingCartonBodySchema,
 ]);
 
-const updatePackagingByIdBodySchema = z
+export const updatePackagingByIdBodySchema = z
   .object({
     name: z
       .string("Tên bao bì phải là chuỗi.")
@@ -174,30 +174,4 @@ export const packagingSchema = {
   updateImageById: {
     params: packagingParamsSchema,
   },
-};
-
-export type PackagingRequestType = {
-  Query: {
-    Querystring: z.infer<typeof queryStringPackagingsSchema>;
-  };
-  GetById: {
-    Params: z.infer<typeof packagingParamsSchema>;
-  };
-  GetWarehousesById: {
-    Params: z.infer<typeof packagingParamsSchema>;
-    Querystring: z.infer<typeof queryStringWarehousesByPackagingIdSchema>;
-  };
-  GetDetailById: {
-    Params: z.infer<typeof packagingParamsSchema>;
-  };
-  Create: {
-    Body: z.infer<typeof createPackagingBodySchema>;
-  };
-  UpdateById: {
-    Params: z.infer<typeof packagingParamsSchema>;
-    Body: z.infer<typeof updatePackagingByIdBodySchema>;
-  };
-  UpdateImageById: {
-    Params: z.infer<typeof packagingParamsSchema>;
-  };
 };

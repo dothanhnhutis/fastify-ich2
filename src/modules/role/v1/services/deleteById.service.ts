@@ -1,10 +1,10 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
+import type { Role } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
 import BaseRoleService from "./base.service";
 
 export default class DeleteByIdService extends BaseRoleService {
-  async execute(roleId: string) {
+  async execute(roleId: string): Promise<Role> {
     const queryConfig: QueryConfig = {
       text: `DELETE FROM roles WHERE id = $1 RETURNING *;`,
       values: [roleId],

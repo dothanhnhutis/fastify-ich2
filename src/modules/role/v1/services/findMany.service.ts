@@ -1,9 +1,9 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
 import type { Metadata } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy, isDateString } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
 import type { RoleRequestType } from "../role.schema";
+import type { RoleDetail } from "../role.types";
 import BaseRoleService from "./base.service";
 
 const sortFieldMap: Record<string, string> = {
@@ -18,7 +18,7 @@ const sortFieldMap: Record<string, string> = {
 
 export default class FindManyService extends BaseRoleService {
   async execute(query: RoleRequestType["Query"]["Querystring"]): Promise<{
-    roles: Role[];
+    roles: RoleDetail[];
     metadata: Metadata;
   }> {
     const baseSelect = `
@@ -165,7 +165,7 @@ export default class FindManyService extends BaseRoleService {
     let step = 0;
     let maxStep = 2;
     let client: PoolClient | null = null;
-    let result: { roles: Role[]; metadata: Metadata } = {
+    let result: { roles: RoleDetail[]; metadata: Metadata } = {
       roles: [],
       metadata: {
         totalItem: 0,
@@ -212,7 +212,7 @@ export default class FindManyService extends BaseRoleService {
           values: [...values, limit, offset],
         };
 
-        const { rows: roles } = await this.pool.query<Role>(queryConfig);
+        const { rows: roles } = await this.pool.query<RoleDetail>(queryConfig);
         logService.info(
           {
             operation: "db.transaction",

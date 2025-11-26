@@ -4,9 +4,9 @@ import {
   queryParamToArray,
   queryParamToString,
   queryStringSchema,
-} from "../../shared/validate";
+} from "../../shared/schema";
 
-const warehouseIdParamsSchema = z.object({
+export const warehouseIdParamsSchema = z.object({
   id: z.string(),
 });
 
@@ -53,7 +53,7 @@ const sortEnum = buildSortField([
   "updated_at",
 ]);
 
-const queryStringWarehouseSchema = queryStringSchema
+export const queryStringWarehouseSchema = queryStringSchema
   .extend({
     name: queryParamToString.pipe(z.string("Tên kho hàng phải là chuỗi.")),
     address: queryParamToString.pipe(z.string("Địa chỉ kho phải là chuỗi.")),
@@ -68,7 +68,7 @@ const queryStringWarehouseSchema = queryStringSchema
   })
   .partial();
 
-const createWarehouseBodySchema = z
+export const createWarehouseBodySchema = z
   .object({
     name: z
       .string("Tên kho hàng phải là chuỗi.")
@@ -84,7 +84,7 @@ const createWarehouseBodySchema = z
   })
   .strict();
 
-const updateWarehouseByIdBodySchema = z
+export const updateWarehouseByIdBodySchema = z
   .object({
     name: z
       .string("Tên kho hàng phải là chuỗi.")
@@ -129,30 +129,4 @@ export const warehouseSchema = {
   deleteById: {
     params: warehouseIdParamsSchema,
   },
-};
-
-export type WarehouseRequestType = {
-  Query: {
-    Querystring: z.infer<typeof queryStringWarehouseSchema>;
-  };
-  GetById: {
-    Params: z.infer<typeof warehouseIdParamsSchema>;
-  };
-  GetPackagingsById: {
-    Params: z.infer<typeof warehouseIdParamsSchema>;
-    Querystring: z.infer<typeof queryStringPackagingByWarehouseIdSchema>;
-  };
-  GetDetailById: {
-    Params: z.infer<typeof warehouseIdParamsSchema>;
-  };
-  Create: {
-    Body: z.infer<typeof createWarehouseBodySchema>;
-  };
-  UpdateById: {
-    Params: z.infer<typeof warehouseIdParamsSchema>;
-    Body: z.infer<typeof updateWarehouseByIdBodySchema>;
-  };
-  DeleteById: {
-    Params: z.infer<typeof warehouseIdParamsSchema>;
-  };
 };

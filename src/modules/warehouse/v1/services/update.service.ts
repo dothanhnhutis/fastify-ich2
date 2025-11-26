@@ -1,7 +1,7 @@
+import type { Warehouse } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";
-import type { WarehouseRequestType } from "../warehouse.schema";
-import type { Warehouse } from "../warehouse.types";
+import type { WarehouseRequestType } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
 
 export default class UpdateByIdService extends BaseWarehouseService {

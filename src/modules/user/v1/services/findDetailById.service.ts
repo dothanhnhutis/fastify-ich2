@@ -1,10 +1,10 @@
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import type { UserDetail } from "../user.types";
+import type { UserDetailWithoutPassword } from "summary-types";
 import BaseUserService from "./base.service";
 
 export default class FindDetailByIdService extends BaseUserService {
-  async execute(userId: string): Promise<UserDetail | null> {
+  async execute(userId: string): Promise<UserDetailWithoutPassword | null> {
     const queryConfig: QueryConfig = {
       text: `
             SELECT
@@ -126,7 +126,9 @@ export default class FindDetailByIdService extends BaseUserService {
     });
 
     try {
-      const { rows } = await this.pool.query<UserDetail>(queryConfig);
+      const { rows } = await this.pool.query<UserDetailWithoutPassword>(
+        queryConfig
+      );
       if (rows[0]) {
         logService.info(
           `Tìm thấy thông tin chi tiết userId=${userId} trong database`
@@ -158,7 +160,9 @@ export default class FindDetailByIdService extends BaseUserService {
     }
   }
 
-  async findDetailByIdCache(userId: string): Promise<UserDetail | null> {
+  async findDetailByIdCache(
+    userId: string
+  ): Promise<UserDetailWithoutPassword | null> {
     const luaScript = `
       local user = redis.call("GET", "user:" .. KEYS[1])
       local userRoles = redis.call("GET", "user:" .. KEYS[1] .. ":roles")
@@ -196,7 +200,7 @@ export default class FindDetailByIdService extends BaseUserService {
       return {
         ...JSON.parse(userDetailString[0]),
         roles: JSON.parse(userDetailString[1]),
-      } as UserDetail;
+      } as UserDetailWithoutPassword;
     } catch (error) {
       logService.warn(
         { error },

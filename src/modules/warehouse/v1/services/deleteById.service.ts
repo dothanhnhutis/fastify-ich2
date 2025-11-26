@@ -1,10 +1,10 @@
+import type { Warehouse } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import type { Warehouse } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
 
 export default class DeleteByIdService extends BaseWarehouseService {
-  async execute(warehouseId: string) {
+  async execute(warehouseId: string): Promise<Warehouse> {
     const queryConfig: QueryConfig = {
       text: `DELETE FROM warehouses WHERE id = $1 RETURNING *;`,
       values: [warehouseId],

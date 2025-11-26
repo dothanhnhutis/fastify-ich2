@@ -1,12 +1,12 @@
 import type { FastifyRequest } from "fastify";
+import type { WarehouseRequestType } from "../warehouse.types";
 import CreateService from "./create.service";
-import { WarehouseRequestType } from "../warehouse.schema";
+import DeleteByIdService from "./deleteById.service";
 import FindByIdService from "./findById.service";
 import FindDetailByIdService from "./findDetailById.service";
 import FindManyService from "./findMany.service";
 import { FindPackagingsByIdService } from "./findPackagingsById.service";
 import UpdateByIdService from "./update.service";
-import DeleteByIdService from "./deleteById.service";
 
 export default class WarehouseServiceV1 {
   private createService: CreateService;

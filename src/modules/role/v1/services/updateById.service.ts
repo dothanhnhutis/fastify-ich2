@@ -1,4 +1,4 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
+import type { Role } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";
 import type { RoleRequestType } from "../role.schema";

@@ -98,3 +98,92 @@ export const queryStringSchema = z.object({
       .max(50, "page tối đa là 50")
   ),
 });
+
+// role
+const sortRoleEnum = buildSortField([
+  "name",
+  "permissions",
+  "description",
+  "deactived_at",
+  "status",
+  "created_at",
+  "updated_at",
+]);
+
+export const queryStringRolesSchema = queryStringSchema
+  .extend({
+    name: queryParamToString,
+    id: queryParamToArray.pipe(
+      z.array(
+        z.string("Mã vai trò phải là chuỗi."),
+        "Danh sách mã vai trò phải là mãng."
+      )
+    ),
+    permission: queryParamToArray.pipe(
+      z.array(z.string("Quyền phải là chuỗi."), "Danh sách quyền phải là mãng.")
+    ),
+    description: queryParamToString,
+    status: queryParamToString.pipe(
+      z.enum(
+        ["ACTIVE", "INACTIVE"],
+        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.`
+      )
+    ),
+    sort: queryParamToArray.pipe(
+      z.array(
+        z.enum(
+          sortRoleEnum,
+          `sort phải là một trong: ${sortRoleEnum.join(", ")}`
+        )
+      )
+    ),
+  })
+  .partial();
+
+// user
+
+const sortUserEnum = buildSortField([
+  "username",
+  "email",
+  "status",
+  "deactived_at",
+  "created_at",
+  "updated_at",
+]);
+
+export const queryStringUsersSchema = queryStringSchema
+  .extend({
+    username: queryParamToString,
+    id: queryParamToArray.pipe(
+      z.array(
+        z.string("Mã người dùng cập phải là chuỗi."),
+        "Danh sách người dùng phải là mãng chuỗi."
+      )
+    ),
+    email: queryParamToString.pipe(
+      z.email({
+        error: (ctx) => {
+          if (ctx.code === "invalid_type") {
+            return "Email phải là chuỗi.";
+          } else {
+            return "Email không đúng định dạng.";
+          }
+        },
+      })
+    ),
+    status: queryParamToString.pipe(
+      z.enum(
+        ["ACTIVE", "INACTIVE"],
+        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.`
+      )
+    ),
+    sort: queryParamToArray.pipe(
+      z.array(
+        z.enum(
+          sortUserEnum,
+          `sort phải là một trong: ${sortUserEnum.join(", ")}`
+        )
+      )
+    ),
+  })
+  .partial();

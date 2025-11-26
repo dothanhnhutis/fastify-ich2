@@ -1,10 +1,9 @@
 import type { Metadata } from "@modules/shared/types";
-import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
 import env from "@shared/config/env";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy, makeQueryCacheKey } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
-import type { UserRequestType } from "../user.schema";
+import type { UserDetailWithoutPassword, UserRequestType } from "../user.types";
 import BaseUserService from "./base.service";
 
 const sortFieldMap: Record<string, string> = {
@@ -19,7 +18,7 @@ const sortFieldMap: Record<string, string> = {
 export default class FindManyService extends BaseUserService {
   async execute(
     query: UserRequestType["Query"]["Querystring"]
-  ): Promise<{ users: UserWithoutPassword[]; metadata: Metadata }> {
+  ): Promise<{ users: UserDetailWithoutPassword[]; metadata: Metadata }> {
     const baseSelect = `
         SELECT
             u.id,
@@ -64,7 +63,38 @@ export default class FindManyService extends BaseUserService {
                   )
                 ELSE null
             END 
-            AS avatar
+            AS avatar,
+            COALESCE(
+              json_agg(
+                  json_build_object(
+                      'id',
+                      r.id,
+                      'name',
+                      r.name,
+                      'permissions',
+                      r.permissions,
+                      'description',
+                      r.description,
+                      'status',
+                      r.status,
+                      'deactived_at',
+                      r.deactived_at,
+                      'can_delete',
+                      r.can_delete,
+                      'can_update',
+                      r.can_update,
+                      'created_at',
+                      r.created_at,
+                      'updated_at',
+                      r.updated_at
+                  )
+              ) FILTER (
+                  WHERE
+                      r.id IS NOT NULL
+                    
+              ),
+              '[]'
+            ) AS roles
         FROM
             users u
             LEFT JOIN user_roles ur ON ur.user_id = u.id
@@ -134,7 +164,7 @@ export default class FindManyService extends BaseUserService {
     let client: PoolClient | null = null;
     let step: number = 0;
     let maxStep: number = 2;
-    let result: { users: UserWithoutPassword[]; metadata: Metadata } = {
+    let result: { users: UserDetailWithoutPassword[]; metadata: Metadata } = {
       users: [],
       metadata: {
         totalItem: 0,
@@ -180,7 +210,7 @@ export default class FindManyService extends BaseUserService {
           values: [...values, limit, offset],
         };
 
-        const { rows: users } = await client.query<UserWithoutPassword>(
+        const { rows: users } = await client.query<UserDetailWithoutPassword>(
           queryConfig
         );
         logService.info(
@@ -247,9 +277,10 @@ export default class FindManyService extends BaseUserService {
     }
   }
 
-  async findManyCache(
-    query: UserRequestType["Query"]["Querystring"]
-  ): Promise<{ users: UserWithoutPassword[]; metadata: Metadata } | null> {
+  async findManyCache(query: UserRequestType["Query"]["Querystring"]): Promise<{
+    users: UserDetailWithoutPassword[];
+    metadata: Metadata;
+  } | null> {
     const logService = this.log.child({
       service: "FindManyService.findMany",
       source: "cache",
@@ -268,7 +299,7 @@ export default class FindManyService extends BaseUserService {
       logService.info(`Truy vấn key='${userQueryKey}' thành công.`);
 
       return JSON.parse(data) as {
-        users: UserWithoutPassword[];
+        users: UserDetailWithoutPassword[];
         metadata: Metadata;
       };
     } catch (error) {
@@ -279,7 +310,7 @@ export default class FindManyService extends BaseUserService {
 
   async saveManyToCache(
     query: UserRequestType["Query"]["Querystring"],
-    data: { users: UserWithoutPassword[]; metadata: Metadata }
+    data: { users: UserDetailWithoutPassword[]; metadata: Metadata }
   ): Promise<void> {
     const logService = this.log.child({
       service: "FindManyService.findMany",

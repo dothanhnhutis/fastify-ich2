@@ -1,6 +1,6 @@
 import type { MulterFile } from "@shared/middleware/multer";
 import type { FastifyRequest } from "fastify";
-import type { UserRequestType } from "../user.schema";
+import type { UserRequestType } from "../user.types";
 import CreateService from "./create.service";
 import DeleteAvatarByIdService from "./deleteAvatarById.service";
 import FindByEmailService from "./findByEmail.service";

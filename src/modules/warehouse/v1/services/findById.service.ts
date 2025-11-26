@@ -1,27 +1,15 @@
+import type { Warehouse } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import type { Warehouse } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
 
 export default class FindByIdService extends BaseWarehouseService {
   async execute(warehouseId: string): Promise<Warehouse | null> {
     const queryConfig: QueryConfig = {
       text: `
-        SELECT
-            w.*,
-            COUNT(pi.packaging_id) FILTER (
-                WHERE
-                    pi.packaging_id IS NOT NULL
-                    AND p.status = 'ACTIVE'
-            )::int AS packaging_count
-        FROM
-            warehouses w
-            LEFT JOIN packaging_inventory pi ON (pi.warehouse_id = w.id)
-            LEFT JOIN packagings p ON (pi.packaging_id = p.id)
-        WHERE
-            w.id = $1
-        GROUP BY
-            w.id;
+        SELECT *
+        FROM warehouses
+        WHERE id = $1::text;
       `,
       values: [warehouseId],
     };

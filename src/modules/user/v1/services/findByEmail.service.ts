@@ -1,6 +1,6 @@
-import type { UserPassword } from "@modules/shared/user/user.shared.types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
+import type { UserPassword } from "../user.types";
 import BaseUserService from "./base.service";
 
 export default class FindByEmailService extends BaseUserService {

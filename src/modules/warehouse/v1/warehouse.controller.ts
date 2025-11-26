@@ -1,7 +1,7 @@
 import { BadRequestError } from "@shared/utils/error-handler";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { StatusCodes } from "http-status-codes";
-import type { WarehouseRequestType } from "./warehouse.schema";
+import type { WarehouseRequestType } from "./warehouse.types";
 
 export const WarehouseController = {
   async query(
@@ -26,9 +26,7 @@ export const WarehouseController = {
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
       statusText: "OK",
-      data: {
-        warehouse,
-      },
+      data: warehouse,
     });
   },
 
@@ -44,8 +42,8 @@ export const WarehouseController = {
     );
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      packagings: detail,
+      message: `Có ${detail.metadata.totalItem} kết quả`,
+      data: detail,
     });
   },
 

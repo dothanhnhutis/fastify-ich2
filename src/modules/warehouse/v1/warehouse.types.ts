@@ -1,52 +1,64 @@
-import { Image } from "@modules/shared/file/file.shared.types";
-import type { Metadata } from "@modules/shared/types";
-import type { WarehouseRequestType } from "./warehouse.schema";
-
-export type Warehouse = {
-  id: string;
-  name: string;
-  address: string;
-  status: string;
-  deactived_at: Date;
-  created_at: Date;
-  updated_at: Date;
-  packaging_count: number;
-};
-
-export type PackagingAtWarehouse = {
-  id: string;
-  name: string;
-  min_stock_level: number;
-  unit: "PIECE" | "CARTON";
-  pcs_ctn: number | null;
-  status: string;
-  deactived_at: Date | null;
-  // image: Image;
-  quantity: number;
-  created_at: Date;
-  updated_at: Date;
-};
+import type { Packaging, Warehouse } from "@modules/shared/types";
+import type z from "zod/v4";
+import type {
+  createWarehouseBodySchema,
+  queryStringPackagingByWarehouseIdSchema,
+  queryStringWarehouseSchema,
+  updateWarehouseByIdBodySchema,
+  warehouseIdParamsSchema,
+} from "./warehouse.schema";
 
 export type WarehouseDetail = Warehouse & {
+  packaging_count: number;
   packagings: PackagingAtWarehouse[];
 };
 
-export interface IWarehouseRepository {
-  findWarehouses(
-    query: WarehouseRequestType["Query"]["Querystring"]
-  ): Promise<{ warehouses: Warehouse[]; metadata: Metadata }>;
-  findWarehouseById(warehouseId: string): Promise<Warehouse | null>;
-  findPackagingsByWarehouseId(
-    warehouseId: string,
-    query?: WarehouseRequestType["GetPackagingsById"]["Querystring"]
-  ): Promise<{ packagings: PackagingAtWarehouse; metadata: Metadata }>;
-  findWarehouseDetailById(warehouseId: string): Promise<WarehouseDetail | null>;
-  createNewWarehouse(
-    data: WarehouseRequestType["Create"]["Body"]
-  ): Promise<Warehouse>;
-  updateWarehouseById(
-    warehouseId: string,
-    data: WarehouseRequestType["UpdateById"]["Body"]
-  ): Promise<void>;
-  deleteWarehouseById(id: string): Promise<Warehouse>;
-}
+export type PackagingAtWarehouse = Packaging & {
+  quantity: number;
+};
+
+export type WarehouseRequestType = {
+  Query: {
+    Querystring: z.infer<typeof queryStringWarehouseSchema>;
+  };
+  GetById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
+  };
+  GetPackagingsById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
+    Querystring: z.infer<typeof queryStringPackagingByWarehouseIdSchema>;
+  };
+  GetDetailById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
+  };
+  Create: {
+    Body: z.infer<typeof createWarehouseBodySchema>;
+  };
+  UpdateById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
+    Body: z.infer<typeof updateWarehouseByIdBodySchema>;
+  };
+  DeleteById: {
+    Params: z.infer<typeof warehouseIdParamsSchema>;
+  };
+};
+
+// export interface IWarehouseRepository {
+//   findWarehouses(
+//     query: WarehouseRequestType["Query"]["Querystring"]
+//   ): Promise<{ warehouses: Warehouse[]; metadata: Metadata }>;
+//   findWarehouseById(warehouseId: string): Promise<Warehouse | null>;
+//   findPackagingsByWarehouseId(
+//     warehouseId: string,
+//     query?: WarehouseRequestType["GetPackagingsById"]["Querystring"]
+//   ): Promise<{ packagings: PackagingAtWarehouse; metadata: Metadata }>;
+//   findWarehouseDetailById(warehouseId: string): Promise<WarehouseDetail | null>;
+//   createNewWarehouse(
+//     data: WarehouseRequestType["Create"]["Body"]
+//   ): Promise<Warehouse>;
+//   updateWarehouseById(
+//     warehouseId: string,
+//     data: WarehouseRequestType["UpdateById"]["Body"]
+//   ): Promise<void>;
+//   deleteWarehouseById(id: string): Promise<Warehouse>;
+// }

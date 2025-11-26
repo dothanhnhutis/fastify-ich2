@@ -1,10 +1,9 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
-import type { Metadata } from "@modules/shared/types";
+import type { Metadata, Role } from "@modules/shared/types";
 import env from "@shared/config/env";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy, makeQueryCacheKey } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
-import type { UserRequestType } from "../user.schema";
+import type { UserRequestType } from "../user.types";
 import BaseUserService from "./base.service";
 
 const sortFieldMap: Record<string, string> = {

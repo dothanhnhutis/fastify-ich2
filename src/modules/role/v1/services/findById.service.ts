@@ -1,4 +1,4 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
+import type { Role } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
 import BaseRoleService from "./base.service";
@@ -7,24 +7,10 @@ export default class FindByIdService extends BaseRoleService {
   async execute(roleId: string): Promise<Role | null> {
     const queryConfig: QueryConfig = {
       text: `
-            SELECT
-                r.*,
-                COUNT(ur.user_id) FILTER (
-                    WHERE
-                        ur.user_id IS NOT NULL
-                        AND u.status = 'ACTIVE'
-                        AND u.deactived_at IS NULL
-                )::int AS user_count
-            FROM
-                roles r
-                LEFT JOIN user_roles ur ON (ur.role_id = r.id)
-                LEFT JOIN users u ON (ur.user_id = u.id)
-            WHERE
-                r.id = $1
-            GROUP BY
-                r.id
-            LIMIT
-                1;
+            SELECT *
+            FROM roles
+            WHERE id = $1::text
+            LIMIT 1;
           `,
       values: [roleId],
     };

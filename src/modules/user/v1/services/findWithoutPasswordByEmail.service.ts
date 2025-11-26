@@ -1,4 +1,4 @@
-import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
+import type { UserWithoutPassword } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
 import BaseUserService from "./base.service";
@@ -16,11 +16,6 @@ export default class FindWithoutPasswordByEmailService extends BaseUserService {
               u.deactived_at,
               u.created_at,
               u.updated_at,
-              COUNT(r.id) FILTER (
-                  WHERE
-                      r.id IS NOT NULL
-                      AND r.status = 'ACTIVE'
-              )::int AS role_count,
               CASE
                   WHEN av.file_id IS NOT NULL THEN 
                     json_build_object(
@@ -53,8 +48,6 @@ export default class FindWithoutPasswordByEmailService extends BaseUserService {
               AS avatar
           FROM
               users u
-              LEFT JOIN user_roles ur ON ur.user_id = u.id
-              LEFT JOIN roles r ON ur.role_id = r.id
               LEFT JOIN user_avatars av ON av.user_id = u.id
               AND av.deleted_at IS NULL
               AND av.is_primary = true

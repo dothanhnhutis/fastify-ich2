@@ -1,5 +1,6 @@
 export interface FileUpload {
   id: string;
+  original_name: string;
   mime_type: string;
   destination: string;
   file_name: string;
@@ -10,17 +11,4 @@ export interface FileUpload {
   updated_at: Date;
   // deleted_at: Date;
   // category_id: string | null;
-}
-
-export interface Image {
-  id: string;
-  width: number;
-  height: number;
-  is_primary: boolean;
-  original_name: string;
-  mime_type: string;
-  destination: string;
-  file_name: string;
-  size: number;
-  created_at: Date;
 }

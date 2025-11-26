@@ -1,6 +1,6 @@
-import type { Role } from "@modules/shared/role/role.shared.types";
-import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
+import type { Role, UserWithoutPassword } from "@modules/shared/types";
 
 export type RoleDetail = Role & {
-  users: Omit<UserWithoutPassword, "role_count">[];
+  user_count: number;
+  users: UserWithoutPassword[];
 };

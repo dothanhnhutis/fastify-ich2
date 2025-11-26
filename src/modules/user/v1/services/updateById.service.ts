@@ -1,6 +1,6 @@
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";
-import type { UserRequestType } from "../user.schema";
+import type { UserRequestType } from "../user.types";
 import BaseUserService from "./base.service";
 
 export default class UpdateByIdService extends BaseUserService {

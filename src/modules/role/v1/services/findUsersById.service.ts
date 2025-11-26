@@ -1,5 +1,4 @@
-import type { Metadata } from "@modules/shared/types";
-import type { UserWithoutPassword } from "@modules/shared/user/user.shared.types";
+import type { Metadata, UserWithoutPassword } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy, isDateString } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
@@ -20,7 +19,7 @@ export default class FindUsersByIdService extends BaseRoleService {
     roleId: string,
     query?: RoleRequestType["GetUsersById"]["Querystring"]
   ): Promise<{
-    users: Omit<UserWithoutPassword, "role_count">[];
+    users: UserWithoutPassword[];
     metadata: Metadata;
   }> {
     const cte = `

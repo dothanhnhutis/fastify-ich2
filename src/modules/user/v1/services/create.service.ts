@@ -1,8 +1,7 @@
-import type { UserPassword } from "@modules/shared/user/user.shared.types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { generatePassword, hashPassword } from "@shared/utils/password";
 import type { PoolClient, QueryConfig } from "pg";
-import type { UserRequestType } from "../user.schema";
+import type { UserPassword, UserRequestType } from "../user.types";
 import BaseUserService from "./base.service";
 
 export default class CreateService extends BaseUserService {

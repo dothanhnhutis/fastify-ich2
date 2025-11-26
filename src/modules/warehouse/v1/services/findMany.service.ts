@@ -2,21 +2,8 @@ import type { Metadata } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
-import type { WarehouseRequestType } from "../warehouse.schema";
-import type { Warehouse } from "../warehouse.types";
+import type { WarehouseDetail, WarehouseRequestType } from "../warehouse.types";
 import BaseWarehouseService from "./base.service";
-
-const sortPackagingFieldMap: Record<string, string> = {
-  name: "w.name",
-  min_stock_level: "w.permissions",
-  unit: "w.description",
-  pcs_ctn: "w.deactived_at",
-  status: "w.status",
-  deactived_at: "w.created_at",
-  created_at: "w.updated_at",
-  updated_at: "w.updated_at",
-  quantity: "w.quantity",
-};
 
 const sortFieldMap: Record<string, string> = {
   name: "w.name",
@@ -29,7 +16,7 @@ const sortFieldMap: Record<string, string> = {
 export default class FindManyService extends BaseWarehouseService {
   async execute(
     query: WarehouseRequestType["Query"]["Querystring"]
-  ): Promise<{ warehouses: Warehouse[]; metadata: Metadata }> {
+  ): Promise<{ warehouses: WarehouseDetail[]; metadata: Metadata }> {
     const baseSelect = `
           SELECT
               w.*,
@@ -97,7 +84,7 @@ export default class FindManyService extends BaseWarehouseService {
     let client: PoolClient | null = null;
     let maxStep: number = 2;
 
-    let result: { warehouses: Warehouse[]; metadata: Metadata } = {
+    let result: { warehouses: WarehouseDetail[]; metadata: Metadata } = {
       warehouses: [],
       metadata: {
         totalItem: 0,
@@ -144,7 +131,9 @@ export default class FindManyService extends BaseWarehouseService {
           values: [...values, limit, offset],
         };
 
-        const { rows: warehouses } = await client.query<Warehouse>(queryConfig);
+        const { rows: warehouses } = await client.query<WarehouseDetail>(
+          queryConfig
+        );
         logService.info(
           {
             step: step++,
