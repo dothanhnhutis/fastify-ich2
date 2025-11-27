@@ -25,7 +25,7 @@ SELECT w.*, COUNT(pi.packaging_id) FILTER ( WHERE pi.packaging_id IS NOT NULL AN
                                     'size', f.size,
                                     'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 )
-                                ELSE NULL END
+                                END
                     )
             ), '[]'
     ) AS packagings
@@ -36,6 +36,7 @@ LEFT JOIN packaging_images pim ON pim.packaging_id = p.id
 LEFT JOIN files f ON f.id = pim.file_id
 GROUP BY
     w.id;
+
 -- find detail
 SELECT w.*, COUNT(pi.packaging_id) FILTER ( WHERE pi.packaging_id IS NOT NULL AND p.status = 'ACTIVE' )::int AS packaging_count,
     COALESCE(
@@ -63,7 +64,7 @@ SELECT w.*, COUNT(pi.packaging_id) FILTER ( WHERE pi.packaging_id IS NOT NULL AN
                                     'size', f.size,
                                     'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 )
-                                ELSE NULL END
+                                END
                     )
             ), '[]'
     ) AS packagings
