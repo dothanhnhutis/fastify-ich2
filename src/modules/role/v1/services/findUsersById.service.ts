@@ -23,57 +23,42 @@ export default class FindUsersByIdService extends BaseRoleService {
     metadata: Metadata;
   }> {
     const cte = `
-          WITH
-            users AS (
-              SELECT
-                  u.id,
-                  u.email,
-                  (u.password_hash IS NOT NULL)::boolean AS has_password,
-                  u.username,
-                  u.status,
-                  u.deactived_at,
-                  u.created_at,
-                  u.updated_at,
-                  CASE
-                    WHEN av.file_id IS NOT NULL THEN 
-                      json_build_object(
-                        'id',
-                        av.file_id,
-                        'width',
-                        av.width,
-                        'height',
-                        av.height,
-                        'is_primary',
-                        av.is_primary,
-                        'original_name',
-                        f.original_name,
-                        'mime_type',
-                        f.mime_type,
-                        'destination',
-                        f.destination,
-                        'file_name',
-                        f.file_name,
-                        'size',
-                        f.size,
-                        'created_at',
-                        to_char(
-                            av.created_at AT TIME ZONE 'UTC',
-                            'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
-                            )
-                        )
-                    ELSE null
-                  END AS avatar
-              FROM
-                  user_roles ur
-                  LEFT JOIN users u ON (u.id = ur.user_id)
-                  LEFT JOIN user_avatars av ON (u.id = av.user_id)
-                  LEFT JOIN files f ON f.id = av.file_id
-              WHERE
-                  ur.role_id = $1::text
-                  AND u.status = 'ACTIVE'
-                  AND u.deactived_at IS NULL
-            )
-          `;
+    WITH users AS 
+    (
+        SELECT u.id,
+              u.username,
+              u.email,
+              (u.password_hash IS NOT NULL)::boolean AS has_password,
+              u.status,
+              u.deactivated_at,
+              u.created_at,
+              u.updated_at,
+              (
+                CASE
+                WHEN f.id IS NOT NULL THEN 
+                    json_build_object(
+                        'id', ua.file_id,
+                        'width', ua.width,
+                        'height', ua.height,
+                        'is_primary', ua.is_primary,
+                        'original_name', f.original_name,
+                        'mime_type', f.mime_type,
+                        'destination', f.destination,
+                        'file_name', f.file_name,
+                        'size', f.size,
+                        'created_at', to_char(ua.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                    ) 
+                  END
+              ) AS avatar
+               FROM user_roles ur
+                        INNER JOIN users u ON u.id = ur.user_id AND u.deactivated_at IS NULL
+                        LEFT JOIN user_avatars ua
+                                  ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+                        LEFT JOIN files f ON f.id = ua.file_id
+               WHERE ur.role_id = $1::text
+              
+     )
+    `;
 
     const baseSelect = `FROM users`;
 

@@ -20,95 +20,43 @@ export default class FindManyService extends BaseUserService {
     query: UserRequestType["Query"]["Querystring"]
   ): Promise<{ users: UserDetailWithoutPassword[]; metadata: Metadata }> {
     const baseSelect = `
-        SELECT
-            u.id,
-            u.email,
-            (u.password_hash IS NOT NULL)::boolean AS has_password,
-            u.username,
-            u.status,
-            u.deactived_at,
-            u.created_at,
-            u.updated_at,
-            COUNT(r.id) FILTER (
-                WHERE
-                    r.id IS NOT NULL
-                    AND r.status = 'ACTIVE'
-            )::int AS role_count,
-            CASE
-                WHEN av.file_id IS NOT NULL THEN 
-                  json_build_object(
-                      'id',
-                      av.file_id,
-                      'width',
-                      av.width,
-                      'height',
-                      av.height,
-                      'is_primary',
-                      av.is_primary,
-                      'original_name',
-                      f.original_name,
-                      'mime_type',
-                      f.mime_type,
-                      'destination',
-                      f.destination,
-                      'file_name',
-                      f.file_name,
-                      'size',
-                      f.size,
-                      'created_at',
-                      to_char(
-                          av.created_at AT TIME ZONE 'UTC',
-                          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
-                        )
-                  )
-                ELSE null
-            END 
-            AS avatar,
-            COALESCE(
-              json_agg(
-                  json_build_object(
-                      'id',
-                      r.id,
-                      'name',
-                      r.name,
-                      'permissions',
-                      r.permissions,
-                      'description',
-                      r.description,
-                      'status',
-                      r.status,
-                      'deactived_at',
-                      r.deactived_at,
-                      'can_delete',
-                      r.can_delete,
-                      'can_update',
-                      r.can_update,
-                      'created_at',
-                      r.created_at,
-                      'updated_at',
-                      r.updated_at
-                  )
-              ) FILTER (
-                  WHERE
-                      r.id IS NOT NULL
-                    
-              ),
-              '[]'
-            ) AS roles
-        FROM
-            users u
+    SELECT u.id,
+          u.username,
+          u.email,
+          (u.password_hash IS NOT NULL)::boolean AS has_password,
+          u.status,
+          u.deactivated_at,
+          u.created_at,
+          u.updated_at,
+          COUNT(r.id)::int AS role_count,
+          COALESCE(
+                          json_agg(
+                          json_build_object(
+                                  'id', r.id,
+                                  'name', r.name,
+                                  'permissions', r.permissions,
+                                  'description', r.description,
+                                  'status', r.status,
+                                  'deactivated_at', r.deactivated_at,
+                                  'can_delete', r.can_delete,
+                                  'can_update', r.can_update,
+                                  'created_at', r.created_at,
+                                  'updated_at', r.updated_at
+                          )
+                                  ) FILTER ( WHERE r.id IS NOT NULL ), '[]'
+          )                      AS roles
+    FROM users u
             LEFT JOIN user_roles ur ON ur.user_id = u.id
-            LEFT JOIN roles r ON ur.role_id = r.id
-            LEFT JOIN user_avatars av ON av.user_id = u.id
-            AND av.deleted_at IS NULL
-            AND av.is_primary = true
-            LEFT JOIN files f ON f.id = av.file_id
-            AND av.deleted_at IS NULL
-        
-        `;
-    const values: unknown[] = [];
-    const where: string[] = [];
+            LEFT JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL AND r.status = 'ACTIVE'
+            LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+            LEFT JOIN files f ON f.id = ua.file_id
+        AND r.deactivated_at IS NULL
+        AND r.status = 'ACTIVE'
+    `;
+
     let idx = 1;
+    const values: unknown[] = [];
+    const where: string[] = ["u.deactivated_at IS NULL"];
 
     if (query.id !== undefined) {
       where.push(`u.id = ANY($${idx++}::text[])`);
@@ -142,10 +90,10 @@ export default class FindManyService extends BaseUserService {
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-    const groupByClause = `GROUP BY u.id, u.email, u.password_hash, u.username, u.status,
-            u.deactived_at, u.created_at, u.updated_at, av.file_id, av.width, av.height,
-            av.is_primary, av.created_at, f.original_name, f.mime_type, f.destination,
-            f.file_name, f.size`;
+    const groupByClause = `GROUP BY u.id, u.email, u.password_hash, u.username,
+    u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id, ua.height,
+    ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name,
+    f.size, ua.created_at`;
 
     const logService = this.log.child({
       service: "FindManyService.execute",

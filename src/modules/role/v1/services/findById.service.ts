@@ -7,11 +7,12 @@ export default class FindByIdService extends BaseRoleService {
   async execute(roleId: string): Promise<Role | null> {
     const queryConfig: QueryConfig = {
       text: `
-            SELECT *
-            FROM roles
-            WHERE id = $1::text
-            LIMIT 1;
-          `,
+      SELECT *
+      FROM roles
+      WHERE deactivated_at IS NULL
+        AND id = $1::text
+      LIMIT 1;
+      `,
       values: [roleId],
     };
 

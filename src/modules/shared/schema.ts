@@ -104,7 +104,6 @@ const sortRoleEnum = buildSortField([
   "name",
   "permissions",
   "description",
-  "deactived_at",
   "status",
   "created_at",
   "updated_at",
@@ -141,12 +140,10 @@ export const queryStringRolesSchema = queryStringSchema
   .partial();
 
 // user
-
 const sortUserEnum = buildSortField([
   "username",
   "email",
   "status",
-  "deactived_at",
   "created_at",
   "updated_at",
 ]);

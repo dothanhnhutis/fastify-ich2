@@ -56,9 +56,10 @@ export const SuperUserController = {
     request: FastifyRequest<UserRequestType["GetDetailById"]>,
     reply: FastifyReply
   ) {
-    const userDetail = await request.services.user.v1.findDetailById(
-      request.params.id
-    );
+    const userDetail =
+      await request.services.user.v1.findDetailWithoutPasswordById(
+        request.params.id
+      );
     if (!userDetail) throw new BadRequestError("Người dùng không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,

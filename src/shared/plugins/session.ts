@@ -1,14 +1,14 @@
 import type { Session } from "@modules/session/v1/session.types";
-import type { UserDetail } from "@modules/user/v1/user.types";
 import env from "@shared/config/env";
 import { CryptoAES } from "@shared/utils/crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+import type { UserDetailWithoutPassword } from "summary-types";
 import type { CookieOptions } from "./cookie";
 
 declare module "fastify" {
   interface FastifyRequest {
-    currUser: UserDetail | null;
+    currUser: UserDetailWithoutPassword | null;
     session: Session | null;
   }
 
@@ -53,9 +53,10 @@ async function session(fastify: FastifyInstance, options: SessionOptions) {
       const sessionId = cryptoCookie.decrypt(sessionDescript);
       const session = await request.services.session.v1.findById(sessionId);
       if (!session) return;
-      const userRoleDetail = await request.services.user.v1.findDetailById(
-        session.userId
-      );
+      const userRoleDetail =
+        await request.services.user.v1.findDetailWithoutPasswordById(
+          session.userId
+        );
       if (!userRoleDetail) {
         res.clearCookie(cookieName);
       } else {

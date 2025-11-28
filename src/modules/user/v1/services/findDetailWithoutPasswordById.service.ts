@@ -3,11 +3,18 @@ import type { QueryConfig } from "pg";
 import type { UserDetailWithoutPassword } from "summary-types";
 import BaseUserService from "./base.service";
 
-export default class FindDetailByIdService extends BaseUserService {
+export default class FindDetailWithoutPasswordByIdService extends BaseUserService {
   async execute(userId: string): Promise<UserDetailWithoutPassword | null> {
     const queryConfig: QueryConfig = {
       text: `
-      SELECT u.*,
+      SELECT u.id,
+            u.username,
+            u.email,
+            (u.password_hash IS NOT NULL)::boolean as has_password,
+            u.status,
+            u.deactivated_at,
+            u.created_at,
+            u.updated_at,
             (CASE
                   WHEN ua.file_id IS NOT NULL THEN
                       json_build_object(
@@ -57,7 +64,7 @@ export default class FindDetailByIdService extends BaseUserService {
     };
 
     const logService = this.log.child({
-      service: "FindDetailByIdService.execute",
+      service: "FindDetailWithoutPasswordByIdService.execute",
       source: "database",
       operation: "db.query",
       query: queryConfig,

@@ -28,19 +28,15 @@ export default class FindRoleByIdService extends BaseUserService {
     });
 
     const cte = `
-          WITH
-            roles AS (
-                SELECT
-                    r.*
-                FROM
-                    user_roles ur
-                    LEFT JOIN roles r ON r.id = ur.role_id
-                WHERE
-                    ur.user_id = $1::text
-                    AND r.status = 'ACTIVE'
-                    AND r.deactived_at IS NULL
-            )
-        `;
+    WITH roles AS 
+    (
+        SELECT r.*
+        FROM user_roles ur
+            INNER JOIN roles r ON r.id = ur.role_id
+                AND r.deactivated_at IS NULL
+        WHERE ur.user_id = $1::text
+    )
+    `;
 
     const baseSelect = `FROM roles`;
 
