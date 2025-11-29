@@ -9,7 +9,7 @@ SELECT w.*, COUNT(pi.packaging_id) FILTER ( WHERE pi.packaging_id IS NOT NULL AN
                             'unit', p.unit,
 			                'pcs_ctn', p.pcs_ctn,
 			                'status', p.status,
-			                'deactivated_at', to_char(p.deactived_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+			                'deactivated_at', to_char(p.deactivated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                             'created_at', to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
     		                'updated_at', to_char(p.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                             'image', CASE WHEN pim.file_id IS NOT NULL THEN
@@ -48,7 +48,7 @@ SELECT w.*, COUNT(pi.packaging_id) FILTER ( WHERE pi.packaging_id IS NOT NULL AN
                             'unit', p.unit,
 			                'pcs_ctn', p.pcs_ctn,
 			                'status', p.status,
-			                'deactivated_at', to_char(p.deactived_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+			                'deactivated_at', to_char(p.deactivated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                             'created_at', to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
     		                'updated_at', to_char(p.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                             'image', CASE WHEN pim.file_id IS NOT NULL THEN

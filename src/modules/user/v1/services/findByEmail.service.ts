@@ -24,12 +24,12 @@ export default class FindByEmailService extends BaseUserService {
                       ) END
                 ) AS avatar
       FROM users u
-              LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+              LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
               LEFT JOIN files f ON f.id = ua.file_id
       WHERE u.email = $1::text
-        AND u.deactivated_at IS NULL
-      GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
-              ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+        AND u.deleted_at IS NULL
+      GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
+              ua.file_id, ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
               ua.created_at
       LIMIT 1;
       `,

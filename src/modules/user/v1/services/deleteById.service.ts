@@ -1,40 +1,29 @@
 import type { Role } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import BaseRoleService from "./base.service";
+import BaseUserService from "./base.service";
 
-export default class FindByIdService extends BaseRoleService {
-  async execute(roleId: string): Promise<Role | null> {
+export default class DeleteByIdService extends BaseUserService {
+  async execute(userId: string): Promise<Role> {
     const queryConfig: QueryConfig = {
-      text: `
-      SELECT *
-      FROM roles
-      WHERE deleted_at IS NULL
-        AND id = $1::text
-      LIMIT 1;
-      `,
-      values: [roleId],
+      text: `UPDATE users SET deleted_at = $1::timestamptz WHERE id = $2::text RETURNING *;`,
+      values: [new Date(), userId],
     };
-
     const logService = this.log.child({
-      service: "FindByIdService.execute",
+      service: "DeleteByIdService.execute",
       source: "database",
-      operation: "db.query",
-      query: queryConfig,
+      operation: "db.delete",
+      queryConfig,
     });
-
     try {
       const { rows } = await this.pool.query<Role>(queryConfig);
-      if (rows[0]) {
-        logService.info(`Tìm thấy vai trò roleId=${roleId} trong database`);
-        return rows[0];
-      }
-      logService.info(`Không tìm thấy vai trò roleId=${roleId} trong database`);
-      return null;
+      logService.info(`Xoá tài khoản userId=${userId} thành công.`);
+      return rows[0];
     } catch (error: unknown) {
       logService.error(
         {
           error,
+          // err: isPostgresError(err) ? err : String(err),
           database: {
             host: this.pool.options.host,
             port: this.pool.options.port,
@@ -46,7 +35,7 @@ export default class FindByIdService extends BaseRoleService {
             },
           },
         },
-        `Lỗi khi truy vấn vai trò roleId=${roleId} database.`
+        `Lỗi khi xoá tài khoản userId=${userId} trong database.`
       );
       throw new InternalServerError();
     }

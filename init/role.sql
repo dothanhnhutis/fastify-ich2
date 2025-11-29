@@ -1,8 +1,8 @@
 -- FindRoleByIdService
 SELECT *
 FROM roles
-WHERE deactivated_at IS NULL
-  AND id = '019ac386-fe23-733c-ab1b-11797876eabc';
+WHERE deleted_at IS NULL
+  AND id = '019ac9da-429e-7d75-8b41-186e2974cd5d';
 
 -- FindRoleDetailByIdService
 SELECT r.*,
@@ -15,7 +15,8 @@ SELECT r.*,
                                'username', u.username,
                                'has_password', (u.password_hash IS NOT NULL)::boolean,
                                'status', u.status,
-                               'deactivated_at', u.deactivated_at,
+                               'disabled_at', u.disabled_at,
+                               'deleted_at', u.deleted_at,
                                'created_at', u.created_at,
                                'updated_at', u.updated_at,
                                'avatar', CASE
@@ -37,11 +38,12 @@ SELECT r.*,
        )                AS users
 FROM roles r
          LEFT JOIN user_roles ur ON ur.role_id = r.id
-         LEFT JOIN users u ON u.id = ur.user_id AND u.status = 'ACTIVE' AND u.deactivated_at IS NULL
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN users u
+                   ON u.id = ur.user_id AND u.status = 'ACTIVE' AND u.disabled_at IS NULL AND u.deleted_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
-WHERE r.deactivated_at IS NULL
-  AND r.id = '019ac386-fe23-733c-ab1b-11797876eabc'
+WHERE r.deleted_at IS NULL
+  AND r.id = '019ac9da-42a5-7902-9077-fedaedeaf8e4'
 GROUP BY r.id
 LIMIT 1;
 
@@ -49,10 +51,9 @@ LIMIT 1;
 SELECT r.*,
        (SELECT COUNT(*)
         FROM user_roles ur2
-                 JOIN users u2 ON u2.id = ur2.user_id
-        WHERE ur2.role_id = r.id
-          AND u2.status = 'ACTIVE'
-          AND u2.deactivated_at IS NULL)::int AS user_count,
+                 JOIN users u2 ON u2.id = ur2.user_id AND u2.status = 'ACTIVE' AND u2.disabled_at IS NULL AND
+                                  u2.deleted_at IS NULL
+        WHERE ur2.role_id = r.id)::int AS user_count,
        COALESCE(
                        json_agg(
                        json_build_object(
@@ -61,7 +62,8 @@ SELECT r.*,
                                'has_password', (u.password_hash IS NOT NULL)::boolean,
                                'username', u.username,
                                'status', u.status,
-                               'deactivated_at', u.deactivated_at,
+                               'disabled_at', u.disabled_at,
+                               'deleted_at', u.deleted_at,
                                'avatar', u.avatar,
                                'created_at', to_char(
                                        u.created_at AT TIME ZONE 'UTC',
@@ -74,7 +76,7 @@ SELECT r.*,
                        )
                                ) FILTER (WHERE u.id IS NOT NULL),
                        '[]'
-       )                                      AS users
+       )                               AS users
 FROM roles r
          LEFT JOIN LATERAL (
     SELECT u.*,
@@ -97,14 +99,15 @@ FROM roles r
                     ) END) AS avatar
     FROM users u
              LEFT JOIN user_roles ur ON ur.user_id = u.id
-             LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.deactivated_at is NULL
+             LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.deleted_at is NULL
              LEFT JOIN files f ON f.id = ua.file_id
     WHERE ur.role_id = r.id
       AND u.status = 'ACTIVE'
-      AND u.deactivated_at IS NULL
+      AND u.deleted_at IS NULL
     ORDER BY u.created_at DESC
     LIMIT 3
     ) u ON TRUE
+WHERE r.deleted_at IS NULL
 GROUP BY r.id;
 
 -- FindUsersByRoleIdService
@@ -113,7 +116,8 @@ WITH users AS (SELECT u.id,
                       u.email,
                       (u.password_hash IS NOT NULL)::boolean AS has_password,
                       u.status,
-                      u.deactivated_at,
+                      u.disabled_at,
+                      u.deleted_at,
                       u.created_at,
                       u.updated_at,
                       (CASE
@@ -133,12 +137,12 @@ WITH users AS (SELECT u.id,
                                                  )
                                                       ) END) AS avatar
                FROM user_roles ur
-                        INNER JOIN users u ON u.id = ur.user_id AND u.deactivated_at IS NULL
+                        INNER JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL
                         LEFT JOIN user_avatars ua
-                                  ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+                                  ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
                         LEFT JOIN files f ON f.id = ua.file_id
-               WHERE ur.role_id = '019ac386-fe23-74ae-861c-de6aaad66335')
+               WHERE ur.role_id = '019ac9da-42a5-7902-9077-fedaedeaf8e4')
 SELECT *
-from users;
+from users where status = 'ACTIVE';
 
 

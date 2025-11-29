@@ -10,8 +10,8 @@ const sortFieldMap: Record<string, string> = {
   name: "name",
   permissions: "permissions",
   description: "description",
-  deactived_at: "deactived_at",
   status: "status",
+  disabled_at: "disabled_at",
   created_at: "created_at",
   updated_at: "updated_at",
 };
@@ -33,7 +33,7 @@ export default class FindRoleByIdService extends BaseUserService {
         SELECT r.*
         FROM user_roles ur
             INNER JOIN roles r ON r.id = ur.role_id
-                AND r.deactivated_at IS NULL
+                AND r.deleted_at IS NULL
         WHERE ur.user_id = $1::text
     )
     `;

@@ -29,7 +29,7 @@ export default class UpdateByIdService extends BaseWarehouseService {
     if (warehouse.status !== undefined) {
       sets.push(
         `status = $${idx++}::text`,
-        `deactived_at = $${idx++}::timestamptz`
+        `disabled_at = $${idx++}::timestamptz`
       );
       values.push(
         warehouse.status,

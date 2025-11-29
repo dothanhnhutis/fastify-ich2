@@ -32,7 +32,7 @@ export default class UpdateByIdService extends BaseRoleService {
     if (role.status !== undefined) {
       sets.push(
         `status = $${idx++}::text`,
-        `deactived_at = ${
+        `disabled_at = ${
           role.status === "ACTIVE" ? `$${idx++}` : `$${idx++}::timestamptz`
         }`
       );

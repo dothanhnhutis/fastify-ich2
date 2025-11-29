@@ -33,43 +33,46 @@ ALTER DATABASE pgdb
 -- users table
 CREATE TABLE IF NOT EXISTS users
 (
-    id             TEXT           NOT NULL DEFAULT uuidv7()::TEXT,
-    email          VARCHAR(255)   NOT NULL,
-    password_hash  TEXT           NOT NULL,
-    username       VARCHAR(100)   NOT NULL,
-    status         VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
-    deactivated_at TIMESTAMPTZ(3), -- soft delete
-    created_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    CONSTRAINT users_pkey PRIMARY KEY (id)
+    id            TEXT           NOT NULL DEFAULT uuidv7()::TEXT,
+    email         VARCHAR(255)   NOT NULL,
+    password_hash TEXT           NOT NULL,
+    username      VARCHAR(100)   NOT NULL,
+    status        VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE', -- 'ACTIVE' |'DISABLED'
+    disabled_at   TIMESTAMPTZ(3),
+    deleted_at    TIMESTAMPTZ(3),                           -- soft delete
+    created_at    TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    CONSTRAINT users_pkey PRIMARY KEY (id),
+    CONSTRAINT users_status_check CHECK (status IN ('ACTIVE', 'DISABLED'))
 );
 
--- users deactivated_at index
-CREATE INDEX IF NOT EXISTS idx_users_deactivated_at_null ON users (deactivated_at)
-    WHERE deactivated_at IS NULL;
+-- users deleted_at index
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at_null ON users (deleted_at)
+    WHERE deleted_at IS NULL;
 -- users  email unique index
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_active_unique ON users (email)
-    WHERE deactivated_at IS NULL;
+    WHERE deleted_at IS NULL;
 
 
 -- roles table
 CREATE TABLE IF NOT EXISTS roles
 (
-    id             TEXT           NOT NULL DEFAULT uuidv7()::TEXT,
-    name           VARCHAR(255)   NOT NULL,
-    permissions    TEXT[]         NOT NULL DEFAULT ARRAY []::TEXT[],
-    description    TEXT           NOT NULL DEFAULT '',
-    status         VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
-    deactivated_at TIMESTAMPTZ(3), -- soft delete
-    can_delete     BOOLEAN        NOT NULL DEFAULT TRUE,
-    can_update     BOOLEAN        NOT NULL DEFAULT TRUE,
-    created_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    id          TEXT           NOT NULL DEFAULT uuidv7()::TEXT,
+    name        VARCHAR(255)   NOT NULL,
+    permissions TEXT[]         NOT NULL DEFAULT ARRAY []::TEXT[],
+    description TEXT           NOT NULL DEFAULT '',
+    status      VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
+    disabled_at TIMESTAMPTZ(3),
+    deleted_at  TIMESTAMPTZ(3), -- soft delete
+    can_delete  BOOLEAN        NOT NULL DEFAULT TRUE,
+    can_update  BOOLEAN        NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     CONSTRAINT roles_pkey PRIMARY KEY (id)
 );
 -- roles index
-CREATE INDEX IF NOT EXISTS idx_roles_deactivated_at_null ON roles (deactivated_at)
-    WHERE deactivated_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_roles_deleted_at_null ON roles (deleted_at)
+    WHERE deleted_at IS NULL;
 
 
 -- user_roles table
@@ -113,7 +116,6 @@ CREATE INDEX IF NOT EXISTS idx_files_created_at ON files (created_at);
 CREATE INDEX IF NOT EXISTS idx_files_mime_type ON files (mime_type);
 
 
-
 -- user_avatars table
 CREATE TABLE IF NOT EXISTS user_avatars
 (
@@ -123,45 +125,45 @@ CREATE TABLE IF NOT EXISTS user_avatars
     height     INTEGER        NOT NULL,
     is_primary BOOLEAN        NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    deactivated_at TIMESTAMPTZ(3),
+    deleted_at TIMESTAMPTZ(3),
     CONSTRAINT user_avatars_pkey PRIMARY KEY (user_id, file_id)
 );
 
 -- user_avatars user_id index
 CREATE INDEX IF NOT EXISTS idx_user_avatars_user_id ON user_avatars (user_id);
--- user_avatars deactivated_at index
-CREATE INDEX IF NOT EXISTS idx_user_avatars_deleted_at ON user_avatars (deactivated_at)
+-- user_avatars deleted_at index
+CREATE INDEX IF NOT EXISTS idx_user_avatars_deleted_at ON user_avatars (deleted_at)
     WHERE
-        deactivated_at IS NULL;
+        deleted_at IS NULL;
 -- user_avatars user_id unique index
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_avatars_primary_unique ON user_avatars (user_id)
     WHERE
         is_primary = true
-            AND deactivated_at IS NULL;
+            AND deleted_at IS NULL;
 
 -- user_avatars foreign key
 ALTER TABLE user_avatars
     ADD CONSTRAINT user_avatars_file_id_files_id_fkey FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE;
 
 
-
 -- warehouses table
 CREATE TABLE IF NOT EXISTS warehouses
 (
-    id             TEXT           NOT NULL DEFAULT uuidv7()::text,
-    name           VARCHAR(255)   NOT NULL,
-    address        TEXT           NOT NULL DEFAULT '',
-    status         VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
-    deactivated_at TIMESTAMPTZ(3),
-    created_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    id          TEXT           NOT NULL DEFAULT uuidv7()::text,
+    name        VARCHAR(255)   NOT NULL,
+    address     TEXT           NOT NULL DEFAULT '',
+    status      VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
+    disabled_at TIMESTAMPTZ(3),
+    deleted_at  TIMESTAMPTZ(3), -- soft delete
+    created_at  TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     CONSTRAINT warehouses_pkey PRIMARY KEY (id)
 );
 
--- warehouses deactivated_at index
-CREATE INDEX IF NOT EXISTS idx_warehouses_deleted_at ON warehouses (deactivated_at)
+-- warehouses deleted_at index
+CREATE INDEX IF NOT EXISTS idx_warehouses_deleted_at ON warehouses (deleted_at)
     WHERE
-        deactivated_at IS NULL;
+        deleted_at IS NULL;
 
 -- packagings table
 CREATE TABLE IF NOT EXISTS packagings
@@ -172,15 +174,16 @@ CREATE TABLE IF NOT EXISTS packagings
     unit            VARCHAR(20)    NOT NULL, -- PIECE | CARTON
     pcs_ctn         INTEGER,
     status          VARCHAR(10)    NOT NULL DEFAULT 'ACTIVE',
-    deactivated_at  TIMESTAMPTZ(3),
+    disabled_at     TIMESTAMPTZ(3),
+    deleted_at      TIMESTAMPTZ(3),          -- soft delete
     created_at      TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
     CONSTRAINT packagings_pkey PRIMARY KEY (id)
 );
--- packagings deactivated_at index
-CREATE INDEX IF NOT EXISTS idx_packagings_deleted_at ON warehouses (deactivated_at)
+-- packagings deleted_at index
+CREATE INDEX IF NOT EXISTS idx_packagings_deleted_at ON warehouses (deleted_at)
     WHERE
-        deactivated_at IS NULL;
+        deleted_at IS NULL;
 
 -- packagings check đảm bảo logic unit <-> pcs_ctn
 ALTER TABLE packagings

@@ -140,7 +140,8 @@ export type Role = {
   permissions: string[];
   description: string;
   status: string;
-  deactived_at: null | Date;
+  disabled_at: null | Date;
+  deleted_at: null | Date;
   can_delete: boolean;
   can_update: boolean;
   created_at: Date;
@@ -152,7 +153,8 @@ export type UserBase = {
   email: string;
   username: string;
   status: string;
-  deactived_at: null | Date;
+  disabled_at: null | Date;
+  deleted_at: null | Date;
   avatar: Image | null;
   created_at: Date;
   updated_at: Date;
@@ -186,7 +188,8 @@ export type Warehouse = {
   name: string;
   address: string;
   status: string;
-  deactived_at: Date;
+  disabled_at: null | Date;
+  deleted_at: Date;
   created_at: Date;
   updated_at: Date;
 };
@@ -198,7 +201,8 @@ export type Packaging = {
   unit: "PIECE" | "CARTON";
   pcs_ctn: number | null;
   status: string;
-  deactived_at: Date | null;
+  disabled_at: null | Date;
+  deleted_at: Date | null;
   image: Image;
   created_at: Date;
   updated_at: Date;

@@ -14,7 +14,7 @@ const sortWarehouseEnum = buildSortField([
   "name",
   "address",
   "status",
-  "deactived_at",
+  "deactivated_at",
   "created_at",
   "updated_at",
   "quantity",
@@ -26,8 +26,8 @@ export const queryStringWarehousesByPackagingIdSchema = queryStringSchema
     address: queryParamToString.pipe(z.string("Địa chỉ kho phải là chuỗi.")),
     status: queryParamToString.pipe(
       z.enum(
-        ["ACTIVE", "INACTIVE"],
-        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.}`
+        ["ACTIVE", "DISABLED"],
+        `Trạng thái phải là một trong 'ACTIVE', 'DISABLED'.}`
       )
     ),
     sort: queryParamToArray.pipe(
@@ -47,7 +47,6 @@ const sortEnum = buildSortField([
   "unit",
   "pcs_ctn",
   "status",
-  "deactived_at",
   "created_at",
   "updated_at",
   "warehouse_count",
@@ -61,8 +60,8 @@ export const queryStringPackagingsSchema = queryStringSchema
       z.enum(["PIECE", "CARTON"], `Loại bao bì phải là 'PIECE' hoặc 'CARTON'.`)
     ),
     status: z.enum(
-      ["ACTIVE", "INACTIVE"],
-      `Trạng thái phải là 'ACTIVE' hoặc 'INACTIVE'.`
+      ["ACTIVE", "DISABLED"],
+      `Trạng thái phải là 'ACTIVE' hoặc 'DISABLED'.`
     ),
     sort: queryParamToArray.pipe(
       z.array(
@@ -140,8 +139,8 @@ export const updatePackagingByIdBodySchema = z
       .min(1, "Quy cách phải là số nguyên dương.")
       .nullable(),
     status: z.enum(
-      ["ACTIVE", "INACTIVE"],
-      "Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'."
+      ["ACTIVE", "DISABLED"],
+      "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."
     ),
     warehouseIds: z.array(
       z.string("Mã kho hàng phải là chuỗi."),

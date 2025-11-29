@@ -16,7 +16,6 @@ const sortPackagingEnum = buildSortField([
   "unit",
   "pcs_ctn",
   "status",
-  "deactived_at",
   "created_at",
   "updated_at",
   "quantity",
@@ -30,8 +29,8 @@ export const queryStringPackagingByWarehouseIdSchema = queryStringSchema
     ),
     status: queryParamToString.pipe(
       z.enum(
-        ["ACTIVE", "INACTIVE"],
-        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.}`
+        ["ACTIVE", "DISABLED"],
+        `Trạng thái phải là một trong 'ACTIVE', 'DISABLED'.}`
       )
     ),
     sort: queryParamToArray.pipe(
@@ -99,8 +98,8 @@ export const updateWarehouseByIdBodySchema = z
       "Mã bao bì phải là mãng."
     ),
     status: z.enum(
-      ["ACTIVE", "INACTIVE"],
-      "Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'."
+      ["ACTIVE", "DISABLED"],
+      "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."
     ),
   })
   .partial();

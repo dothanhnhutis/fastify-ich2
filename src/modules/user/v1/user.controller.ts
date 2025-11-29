@@ -133,6 +133,7 @@ export const UserController = {
   async me(request: FastifyRequest, reply: FastifyReply) {
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
+      message: "Thông tin tài khoản.",
       data: request.currUser,
     });
   },

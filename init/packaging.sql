@@ -29,7 +29,7 @@ SELECT p.*,
                'name', w.name,
                'address', w.address,
                'status', w.status,
-               'deactivated_at', w.deactived_at,
+               'deactivated_at', w.deactivated_at,
                'created_ad', w.created_at,
                'updated_at', w.updated_at,
                'quantity', pi.quantity
@@ -38,4 +38,4 @@ FROM packagings p
          LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
          LEFT JOIN warehouses w ON w.id = pi.warehouse_id
 WHERE p.id = '019ab9d2-d667-729d-b764-68005ab98a93'
-GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.deactived_at, p.created_at, p.updated_at
+GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.deactivated_at, p.created_at, p.updated_at

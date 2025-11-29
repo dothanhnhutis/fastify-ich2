@@ -16,12 +16,13 @@ SELECT u.*,
                 ) END
            ) AS avatar
 FROM users u
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
 WHERE u.email = 'gaconght@gmail.com'
-  AND u.deactivated_at IS NULL
-GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
-         ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+  AND u.deleted_at IS NULL
+GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
+         ua.file_id, ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name,
+         f.size,
          ua.created_at
 LIMIT 1;
 
@@ -31,7 +32,8 @@ SELECT u.id,
        u.email,
        (u.password_hash IS NOT NULL)::boolean AS has_password,
        u.status,
-       u.deactivated_at,
+       u.disabled_at,
+       u.deleted_at,
        u.created_at,
        u.updated_at,
        (CASE
@@ -50,12 +52,13 @@ SELECT u.id,
                 ) END
            )                                  AS avatar
 FROM users u
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
 WHERE u.email = 'gaconght@gmail.com'
-  AND u.deactivated_at IS NULL
-GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
-         ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+  AND u.deleted_at IS NULL
+GROUP BY u.id, u.username, u.email, u.password_hash, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
+         ua.file_id, ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name,
+         f.size,
          ua.created_at
 LIMIT 1;
 
@@ -85,7 +88,8 @@ SELECT u.*,
                                'permissions', r.permissions,
                                'description', r.description,
                                'status', r.status,
-                               'deactivated_at', r.deactivated_at,
+                               'disabled_at', r.disabled_at,
+                               'deleted_at', r.deleted_at,
                                'can_delete', r.can_delete,
                                'can_update', r.can_update,
                                'created_at', r.created_at,
@@ -95,15 +99,13 @@ SELECT u.*,
        )                AS roles
 FROM users u
          LEFT JOIN user_roles ur ON ur.user_id = u.id
-         LEFT JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL AND r.status = 'ACTIVE'
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.disabled_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
-    AND r.deactivated_at IS NULL
-    AND r.status = 'ACTIVE'
-WHERE u.deactivated_at IS NULL
-  AND u.id = '019ac37d-6a39-724b-baf1-2ba700bc54ce'
-GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
-         ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+WHERE u.deleted_at IS NULL
+  AND u.id = '019ac9d9-c834-7843-bdde-4d4615c6c68f'
+GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
+         ua.file_id, ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
          ua.created_at
 LIMIT 1;
 
@@ -113,7 +115,8 @@ SELECT u.id,
        u.email,
        (u.password_hash IS NOT NULL)::boolean AS has_password,
        u.status,
-       u.deactivated_at,
+       u.disabled_at,
+       u.deleted_at,
        u.created_at,
        u.updated_at,
        (CASE
@@ -140,7 +143,8 @@ SELECT u.id,
                                'permissions', r.permissions,
                                'description', r.description,
                                'status', r.status,
-                               'deactivated_at', r.deactivated_at,
+                               'disabled_at', r.disabled_at,
+                               'deleted_at', r.deleted_at,
                                'can_delete', r.can_delete,
                                'can_update', r.can_update,
                                'created_at', r.created_at,
@@ -150,14 +154,13 @@ SELECT u.id,
        )                                      AS roles
 FROM users u
          LEFT JOIN user_roles ur ON ur.user_id = u.id
-         LEFT JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL AND r.status = 'ACTIVE'
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.disabled_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
-    AND r.deactivated_at IS NULL
-    AND r.status = 'ACTIVE'
-WHERE u.deactivated_at IS NULL
-  AND u.id = '019ac37d-6a39-724b-baf1-2ba700bc54ce'
-GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
+WHERE u.deleted_at IS NULL
+  AND u.id = '019ac9d9-c834-7843-bdde-4d4615c6c68f'
+GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
+         ua.file_id,
          ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
          ua.created_at
 LIMIT 1;
@@ -168,7 +171,8 @@ SELECT u.id,
        u.email,
        (u.password_hash IS NOT NULL)::boolean AS has_password,
        u.status,
-       u.deactivated_at,
+       u.disabled_at,
+       u.deleted_at,
        u.created_at,
        u.updated_at,
        COUNT(r.id)::int                       AS role_count,
@@ -180,7 +184,8 @@ SELECT u.id,
                                'permissions', r.permissions,
                                'description', r.description,
                                'status', r.status,
-                               'deactivated_at', r.deactivated_at,
+                               'disabled_at', r.disabled_at,
+                               'deleted_at', r.deleted_at,
                                'can_delete', r.can_delete,
                                'can_update', r.can_update,
                                'created_at', r.created_at,
@@ -190,21 +195,19 @@ SELECT u.id,
        )                                      AS roles
 FROM users u
          LEFT JOIN user_roles ur ON ur.user_id = u.id
-         LEFT JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL AND r.status = 'ACTIVE'
-         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+         LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.disabled_at IS NULL
+         LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
-    AND r.deactivated_at IS NULL
-    AND r.status = 'ACTIVE'
-WHERE u.deactivated_at IS NULL
-GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
+WHERE u.deleted_at IS NULL
+GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.deleted_at, u.disabled_at, u.created_at, u.updated_at, ua.file_id,
          ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
          ua.created_at;
 
 -- FindRolesByUserIdService
 WITH roles AS (SELECT r.*
                FROM user_roles ur
-                        INNER JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL
-               WHERE ur.user_id = '019ac37d-6a39-724b-baf1-2ba700bc54ce')
+                        INNER JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL
+               WHERE ur.user_id = '019ac9d9-c834-7843-bdde-4d4615c6c68f')
 SELECT *
 FROM roles;
 

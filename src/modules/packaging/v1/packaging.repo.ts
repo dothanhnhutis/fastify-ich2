@@ -91,8 +91,8 @@ export default class PackagingRepository implements IPackagingRepository {
       where.push(
         `status = $${idx++}::text`,
         query.status === "ACTIVE"
-          ? "deactived_at IS NULL"
-          : "deactived_at IS NOT NULL"
+          ? "deactivated_at IS NULL"
+          : "deactivated_at IS NOT NULL"
       );
       values.push(query.status);
     }
@@ -112,7 +112,7 @@ export default class PackagingRepository implements IPackagingRepository {
     }
 
     queryString.push(`GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status,
-	                p.deactived_at, p.created_at, p.updated_at, pim.file_id, pim.width, pim.height,
+	                p.deactivated_at, p.created_at, p.updated_at, pim.file_id, pim.width, pim.height,
                   pim.is_primary, pim.created_at, f.original_name, f.mime_type, f.destination, f.file_name,
                   f.size`);
 
@@ -240,7 +240,7 @@ export default class PackagingRepository implements IPackagingRepository {
             p.unit,
             p.pcs_ctn,
             p.status,
-            p.deactived_at,
+            p.deactivated_at,
             p.created_at,
             p.updated_at,
             pim.file_id,
@@ -283,7 +283,7 @@ export default class PackagingRepository implements IPackagingRepository {
           WHERE
               pi.packaging_id = $1
               AND w.status = 'ACTIVE'
-              AND w.deactived_at IS NULL
+              AND w.deactivated_at IS NULL
         )
     `;
 
@@ -308,8 +308,8 @@ export default class PackagingRepository implements IPackagingRepository {
         where.push(
           `status = $${idx++}::text`,
           query.status === "ACTIVE"
-            ? "deactived_at IS NULL"
-            : "deactived_at IS NOT NULL"
+            ? "deactivated_at IS NULL"
+            : "deactivated_at IS NOT NULL"
         );
         values.push(query.status);
       }
@@ -452,8 +452,8 @@ export default class PackagingRepository implements IPackagingRepository {
                         w.address,
                         'status',
                         w.status,
-                        'deactived_at',
-                        w.deactived_at,
+                        'deactivated_at',
+                        w.deactivated_at,
                         'created_at',
                         to_char(
                             w.created_at AT TIME ZONE 'UTC',
@@ -491,7 +491,7 @@ export default class PackagingRepository implements IPackagingRepository {
             p.unit,
             p.pcs_ctn,
             p.status,
-            p.deactived_at,
+            p.deactivated_at,
             p.created_at,
             p.updated_at,
             pim.file_id,
@@ -634,7 +634,7 @@ export default class PackagingRepository implements IPackagingRepository {
         if (data.status !== undefined) {
           sets.push(
             `status = $${idx++}::text`,
-            `deactived_at = $${idx++}::timestamptz`
+            `disabled_at = $${idx++}::timestamptz`
           );
           values.push(
             data.status,

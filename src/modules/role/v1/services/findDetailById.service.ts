@@ -17,7 +17,8 @@ export default class FindDetailByIdService extends BaseRoleService {
                         'username', u.username,
                         'has_password', (u.password_hash IS NOT NULL)::boolean,
                         'status', u.status,
-                        'deactivated_at', u.deactivated_at,
+                        'disabled_at', u.disabled_at,
+                        'deleted_at', u.deleted_at,
                         'created_at', u.created_at,
                         'updated_at', u.updated_at,
                         'avatar', CASE WHEN ua.file_id IS NOT NULL 
@@ -40,10 +41,10 @@ export default class FindDetailByIdService extends BaseRoleService {
             ) AS users
       FROM roles r
               LEFT JOIN user_roles ur ON ur.role_id = r.id
-              LEFT JOIN users u ON u.id = ur.user_id AND u.status = 'ACTIVE' AND u.deactivated_at IS NULL
-              LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+              LEFT JOIN users u ON u.id = ur.user_id AND u.status = 'ACTIVE' AND u.disabled_at IS NULL AND u.deleted_at IS NULL
+              LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
               LEFT JOIN files f ON f.id = ua.file_id
-      WHERE r.deactivated_at IS NULL AND r.id = $1::text
+      WHERE r.deleted_at IS NULL AND r.id = $1::text
       GROUP BY r.id
       LIMIT 1;
       `,

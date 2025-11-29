@@ -12,7 +12,8 @@ export default class FindDetailWithoutPasswordByIdService extends BaseUserServic
             u.email,
             (u.password_hash IS NOT NULL)::boolean as has_password,
             u.status,
-            u.deactivated_at,
+            u.disabled_at,
+            u.deleted_at,
             u.created_at,
             u.updated_at,
             (CASE
@@ -39,7 +40,8 @@ export default class FindDetailWithoutPasswordByIdService extends BaseUserServic
                                     'permissions', r.permissions,
                                     'description', r.description,
                                     'status', r.status,
-                                    'deactivated_at', r.deactivated_at,
+                                    'disabled_at', r.disabled_at,
+                                    'deleted_at', r.deleted_at,
                                     'can_delete', r.can_delete,
                                     'can_update', r.can_update,
                                     'created_at', r.created_at,
@@ -48,14 +50,12 @@ export default class FindDetailWithoutPasswordByIdService extends BaseUserServic
                                     ) FILTER ( WHERE r.id IS NOT NULL ), '[]'
             )                AS roles
       FROM users u
-              LEFT JOIN user_roles ur ON ur.user_id = u.id
-              LEFT JOIN roles r ON r.id = ur.role_id AND r.deactivated_at IS NULL AND r.status = 'ACTIVE'
-              LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
-              LEFT JOIN files f ON f.id = ua.file_id
-          AND r.deactivated_at IS NULL
-          AND r.status = 'ACTIVE'
-      WHERE u.deactivated_at IS NULL AND u.id = $1::text
-      GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.deactivated_at, u.created_at, u.updated_at, ua.file_id,
+          LEFT JOIN user_roles ur ON ur.user_id = u.id
+          LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.disabled_at IS NULL
+          LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
+          LEFT JOIN files f ON f.id = ua.file_id
+      WHERE u.deleted_at IS NULL AND u.id = $1::text
+      GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at, ua.file_id,
               ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
               ua.created_at
       LIMIT 1;

@@ -23,7 +23,7 @@ export default class UpdateByIdService extends BaseUserService {
     if (user.status !== undefined) {
       sets.push(
         `status = $${idx++}::text`,
-        `deactived_at = $${idx++}::timestamptz`
+        `disabled_at = $${idx++}::timestamptz`
       );
       values.push(user.status, user.status === "ACTIVE" ? null : new Date());
     }

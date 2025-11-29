@@ -14,7 +14,6 @@ const sortFieldMap: Record<string, string> = {
   unit: "unit",
   pcs_ctn: "pcs_ctn",
   status: "status",
-  deactived_at: "deactived_at",
   quantity: "quantity",
   created_at: "created_at",
   updated_at: "updated_at",
@@ -41,7 +40,7 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
         WHERE
           pi.warehouse_id = $1
           AND p.status = 'ACTIVE'
-          AND p.deactived_at IS NULL
+          AND p.deactivated_at IS NULL
       )
     `;
 
@@ -71,9 +70,9 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
 
         // thêm điều kiện deactivated
         if (query.status === "ACTIVE") {
-          where.push(`deactived_at IS NULL`);
+          where.push(`disabled_at IS NULL`);
         } else {
-          where.push(`deactived_at IS NOT NULL`);
+          where.push(`disabled_at IS NOT NULL`);
         }
       }
 

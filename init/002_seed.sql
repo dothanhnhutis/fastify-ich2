@@ -25,6 +25,7 @@ WITH
                     'read:user',
                     'create:user',
                     'update:user',
+                    'reset:user:password',
                     'delete:user',
                     'read:role',
                     'create:role',

@@ -9,7 +9,7 @@ const sortFieldMap: Record<string, string> = {
   username: "username",
   email: "email",
   status: "status",
-  deactived_at: "deactived_at",
+  disabled_at: "disabled_at",
   created_at: "created_at",
   updated_at: "updated_at",
 };
@@ -30,7 +30,8 @@ export default class FindUsersByIdService extends BaseRoleService {
               u.email,
               (u.password_hash IS NOT NULL)::boolean AS has_password,
               u.status,
-              u.deactivated_at,
+              u.disabled_at,
+              u.deleted_at,
               u.created_at,
               u.updated_at,
               (
@@ -48,12 +49,12 @@ export default class FindUsersByIdService extends BaseRoleService {
                         'size', f.size,
                         'created_at', to_char(ua.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                     ) 
-                  END
+                END
               ) AS avatar
                FROM user_roles ur
-                        INNER JOIN users u ON u.id = ur.user_id AND u.deactivated_at IS NULL
+                        INNER JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL
                         LEFT JOIN user_avatars ua
-                                  ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deactivated_at IS NULL
+                                  ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
                         LEFT JOIN files f ON f.id = ua.file_id
                WHERE ur.role_id = $1::text
               

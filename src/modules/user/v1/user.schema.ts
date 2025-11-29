@@ -42,8 +42,8 @@ export const createBodySchema = z
 export const updateByIdBodySchema = z
   .object({
     status: z.enum(
-      ["ACTIVE", "INACTIVE"],
-      "Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'."
+      ["ACTIVE", "DISABLED"],
+      "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."
     ),
     roleIds: z.array(
       z.string("Vai trò phải là chuỗi.").trim(),

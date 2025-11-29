@@ -42,8 +42,8 @@ const updateRoleByIdBodySchema = z
       )
       .min(1, "Danh sách quyền truy cập không được trống."),
     status: z.enum(
-      ["ACTIVE", "INACTIVE"],
-      "Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'."
+      ["ACTIVE", "DISABLED"],
+      "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."
     ),
     userIds: z.array(
       z.string("Mã tài khoản phải là chuỗi."),

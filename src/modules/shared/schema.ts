@@ -105,6 +105,7 @@ const sortRoleEnum = buildSortField([
   "permissions",
   "description",
   "status",
+  "disabled_at",
   "created_at",
   "updated_at",
 ]);
@@ -124,8 +125,8 @@ export const queryStringRolesSchema = queryStringSchema
     description: queryParamToString,
     status: queryParamToString.pipe(
       z.enum(
-        ["ACTIVE", "INACTIVE"],
-        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.`
+        ["ACTIVE", "DISABLED"],
+        `Trạng thái phải là một trong 'ACTIVE', 'DISABLED'.`
       )
     ),
     sort: queryParamToArray.pipe(
@@ -144,6 +145,7 @@ const sortUserEnum = buildSortField([
   "username",
   "email",
   "status",
+  "disabled_at",
   "created_at",
   "updated_at",
 ]);
@@ -170,8 +172,8 @@ export const queryStringUsersSchema = queryStringSchema
     ),
     status: queryParamToString.pipe(
       z.enum(
-        ["ACTIVE", "INACTIVE"],
-        `Trạng thái phải là một trong 'ACTIVE', 'INACTIVE'.`
+        ["ACTIVE", "DISABLED"],
+        `Trạng thái phải là một trong 'ACTIVE', 'DISABLED'.`
       )
     ),
     sort: queryParamToArray.pipe(

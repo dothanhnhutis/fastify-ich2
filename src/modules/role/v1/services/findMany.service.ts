@@ -10,8 +10,8 @@ const sortFieldMap: Record<string, string> = {
   name: "r.name",
   permissions: "r.permissions",
   description: "r.description",
-  deactived_at: "r.deactived_at",
   status: "r.status",
+  disabled_at: "r.disabled_at",
   created_at: "r.created_at",
   updated_at: "r.updated_at",
 };
@@ -26,10 +26,11 @@ export default class FindManyService extends BaseRoleService {
           (
               SELECT COUNT(*)
               FROM user_roles ur2
-                  JOIN users u2 ON u2.id = ur2.user_id
+                  JOIN users u2 ON u2.id = ur2.user_id 
+                    AND u2.status = 'ACTIVE' 
+                    AND u2.disabled_at IS NULL 
+                    AND u2.deleted_at IS NULL
               WHERE ur2.role_id = r.id
-                  AND u2.status = 'ACTIVE'
-                  AND u2.deactivated_at IS NULL
           )::int AS user_count,
           COALESCE(
               json_agg(
@@ -39,7 +40,8 @@ export default class FindManyService extends BaseRoleService {
                       'has_password', (u.password_hash IS NOT NULL)::boolean,
                       'username', u.username,
                       'status', u.status,
-                      'deactivated_at', u.deactivated_at,
+                      'disabled_at', u.disabled_at,
+                      'deleted_at', u.deleted_at,
                       'avatar', u.avatar,
                       'created_at', to_char(u.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                       'updated_at', to_char(u.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -69,18 +71,18 @@ export default class FindManyService extends BaseRoleService {
                   ) AS avatar
             FROM users u
                 LEFT JOIN user_roles ur ON ur.user_id = u.id
-                LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.deactivated_at is NULL
+                LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.deleted_at is NULL
                 LEFT JOIN files f ON f.id = ua.file_id
             WHERE ur.role_id = r.id
                 AND u.status = 'ACTIVE'
-                AND u.deactivated_at IS NULL
+                AND u.deleted_at IS NULL
             ORDER BY u.created_at DESC
             LIMIT 3
         ) u ON TRUE
     `;
 
     const values: unknown[] = [];
-    const where: string[] = [];
+    const where: string[] = ["r.deleted_at IS NULL"];
     let idx = 1;
 
     if (query.name !== undefined) {

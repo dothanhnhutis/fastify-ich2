@@ -6,8 +6,8 @@ import BaseRoleService from "./base.service";
 export default class DeleteByIdService extends BaseRoleService {
   async execute(roleId: string): Promise<Role> {
     const queryConfig: QueryConfig = {
-      text: `DELETE FROM roles WHERE id = $1 RETURNING *;`,
-      values: [roleId],
+      text: `UPDATE roles SET deleted_at = $1::timestamptz WHERE id = $2::text RETURNING *;`,
+      values: [new Date(), roleId],
     };
     const logService = this.log.child({
       service: "DeleteByIdService.execute",

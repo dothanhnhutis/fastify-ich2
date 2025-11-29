@@ -29,8 +29,8 @@ export default class FindDetailByIdService extends BaseWarehouseService {
                         p.pcs_ctn,
                         'status',
                         p.status,
-                        'deactived_at',
-                        p.deactived_at,
+                        'deactivated_at',
+                        p.deactivated_at,
                         'created_at',
                         
                         to_char(

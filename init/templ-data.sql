@@ -1,5 +1,5 @@
 -- template users data
-INSERT INTO users (email, username, deactivated_at, password_hash)
+INSERT INTO users (email, username, deleted_at, password_hash)
 VALUES ('gaconght@gmail.com', 'Thanh Nhut', null,
         '$argon2id$v=19$m=65536,t=3,p=4$oDdsbvL66JBFGcGtpM2bVQ$BSuYE86W6ALjeRJmC9I5sv/pr6xXJj3eFGvgS+aF7Io'),
        ('gaconght@gmail.com', 'Thanh Nhut', NOW(),
@@ -47,6 +47,6 @@ RETURNING
 
 -- template user_roles data
 INSERT INTO user_roles(user_id, role_id)
-VALUES ('019ac37d-6a39-724b-baf1-2ba700bc54ce', '019ac386-fe23-733c-ab1b-11797876eabc'),
-       ('019ac37d-6a39-724b-baf1-2ba700bc54ce', '019ac386-fe23-74ae-861c-de6aaad66335')
+VALUES ('019ac9d9-c834-7843-bdde-4d4615c6c68f', '019ac9da-429e-7d75-8b41-186e2974cd5d'),
+       ('019ac9d9-c834-7843-bdde-4d4615c6c68f', '019ac9da-42a5-7902-9077-fedaedeaf8e4')
 RETURNING *;

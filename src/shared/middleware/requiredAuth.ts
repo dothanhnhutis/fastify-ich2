@@ -1,4 +1,7 @@
-import { NotAuthorizedError } from "@shared/utils/error-handler";
+import {
+  NotAuthorizedError,
+  PermissionError,
+} from "@shared/utils/error-handler";
 import type {
   FastifyReply,
   FastifyRequest,
@@ -11,4 +14,6 @@ export default async function requiredAuthMiddleware<
   if (!req.currUser) {
     throw new NotAuthorizedError();
   }
+
+  if (req.currUser.status === "DISABLED") throw new PermissionError();
 }
