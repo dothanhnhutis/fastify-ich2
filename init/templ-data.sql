@@ -50,3 +50,12 @@ INSERT INTO user_roles(user_id, role_id)
 VALUES ('019ac9d9-c834-7843-bdde-4d4615c6c68f', '019ac9da-429e-7d75-8b41-186e2974cd5d'),
        ('019ac9d9-c834-7843-bdde-4d4615c6c68f', '019ac9da-42a5-7902-9077-fedaedeaf8e4')
 RETURNING *;
+
+
+
+
+-- template warehouse
+INSERT INTO warehouses(name, address)
+VALUES ('Nha kho 1', '159 Nguyen dinh chieu'),
+       ('Nha kho 2', '201 Nguyen dinh chieu')
+RETURNING *;

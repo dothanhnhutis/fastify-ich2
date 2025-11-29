@@ -198,6 +198,25 @@ ALTER TABLE packagings
             )
         );
 
+-- packaging_images table
+CREATE TABLE IF NOT EXISTS packaging_images
+(
+    packaging_id TEXT           NOT NULL,
+    file_id      TEXT           NOT NULL,
+    width        INTEGER        NOT NULL,
+    height       INTEGER        NOT NULL,
+    is_primary   BOOLEAN        NOT NULL DEFAULT false,
+    created_at   TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
+    deleted_at   TIMESTAMPTZ(3),
+    CONSTRAINT packaging_images_pkey PRIMARY KEY (packaging_id, file_id)
+);
+
+-- packaging_images foreign key
+ALTER TABLE packaging_images
+    ADD CONSTRAINT packaging_images_file_id_files_id_fkey FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE;
+
+
+
 -- packaging_inventory table
 CREATE TABLE IF NOT EXISTS packaging_inventory
 (
