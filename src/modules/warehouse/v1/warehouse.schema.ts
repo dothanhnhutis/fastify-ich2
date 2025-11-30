@@ -47,7 +47,8 @@ export const queryStringPackagingByWarehouseIdSchema = queryStringSchema
 const sortEnum = buildSortField([
   "name",
   "address",
-  "deleted",
+  "status",
+  "disabled_at",
   "created_at",
   "updated_at",
 ]);

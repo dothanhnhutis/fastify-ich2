@@ -14,7 +14,7 @@ const sortWarehouseEnum = buildSortField([
   "name",
   "address",
   "status",
-  "deactivated_at",
+  "disabled_at",
   "created_at",
   "updated_at",
   "quantity",

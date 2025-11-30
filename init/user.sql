@@ -158,7 +158,7 @@ FROM users u
          LEFT JOIN user_avatars ua ON ua.user_id = u.id AND ua.is_primary = TRUE AND ua.deleted_at IS NULL
          LEFT JOIN files f ON f.id = ua.file_id
 WHERE u.deleted_at IS NULL
-  AND u.id = '019ac9d9-c834-7843-bdde-4d4615c6c68f'
+  AND u.id = '019ab9d2-d664-74fc-9768-61cb828f9058'
 GROUP BY u.id, u.email, u.password_hash, u.username, u.status, u.disabled_at, u.deleted_at, u.created_at, u.updated_at,
          ua.file_id,
          ua.height, ua.width, ua.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,

@@ -59,3 +59,9 @@ INSERT INTO warehouses(name, address)
 VALUES ('Nha kho 1', '159 Nguyen dinh chieu'),
        ('Nha kho 2', '201 Nguyen dinh chieu')
 RETURNING *;
+
+-- template packaging
+INSERT INTO packagings(name, min_stock_level, unit, pcs_ctn)
+VALUES ('San pham A', '10', 'CARTON', 100),
+       ('San pham B', '200', 'PIECE', null)
+RETURNING *;

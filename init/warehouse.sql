@@ -49,8 +49,8 @@ FROM warehouses w
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND p.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
 WHERE w.deleted_at IS NULL
-  AND w.id = '019acece-6899-781f-9779-04d13c5804af'
-GROUP BY w.id, w.name, w.address, w.status, w.disabled_at, w.deleted_at, w.created_at, w.updated_at;
+  AND w.id = '019ad00e-1c80-7be9-8675-1eac39515d59'
+GROUP BY w.id;
 
 
 -- FindManyWarehouseService
@@ -97,7 +97,7 @@ FROM warehouses w
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND p.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
 WHERE w.deleted_at IS NULL
-GROUP BY w.id, w.name, w.address, w.status, w.disabled_at, w.deleted_at, w.created_at, w.updated_at;
+GROUP BY w.id;
 
 -- FindPackagingsByWarehouseIdService
 WITH packagings AS (SELECT p.*,
@@ -123,6 +123,6 @@ WITH packagings AS (SELECT p.*,
                              LEFT JOIN packaging_images pim
                                        ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
                              LEFT JOIN files f ON f.id = pim.file_id
-                    WHERE pi.warehouse_id = '019acece-6899-781f-9779-04d13c5804af')
+                    WHERE pi.warehouse_id = '019ad00e-1c80-7be9-8675-1eac39515d59')
 SELECT *
 from packagings

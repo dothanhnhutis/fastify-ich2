@@ -29,9 +29,8 @@ FROM packagings p
          LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
          LEFT JOIN warehouses w ON w.id = pi.warehouse_id
 WHERE p.deleted_at IS NULL
-  AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03'
-GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
-         p.updated_at;
+  AND p.id = '019ad05d-ad12-79a2-a5d7-6c009daf54a4'
+GROUP BY p.id;
 
 
 -- FindManyPackagingService
@@ -59,8 +58,7 @@ FROM packagings p
          LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
          LEFT JOIN warehouses w ON w.id = pi.warehouse_id
 WHERE p.deleted_at IS NULL
-GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
-         p.updated_at;
+GROUP BY p.id;
 
 
 -- FindWarehousesByPackagingIdService

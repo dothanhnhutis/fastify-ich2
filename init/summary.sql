@@ -53,6 +53,9 @@ CREATE INDEX IF NOT EXISTS idx_users_deleted_at_null ON users (deleted_at)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_active_unique ON users (email)
     WHERE deleted_at IS NULL;
 
+alter  table  packagings rename COLUMN deactivated_at to disabled_at;
+alter  table  packagings add COLUMN deleted_at TIMESTAMPTZ(3);
+
 
 -- roles table
 CREATE TABLE IF NOT EXISTS roles

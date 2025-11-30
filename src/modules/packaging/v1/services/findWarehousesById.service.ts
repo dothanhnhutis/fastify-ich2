@@ -2,66 +2,39 @@ import type { Metadata } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import { buildOrderBy } from "@shared/utils/helper";
 import type { PoolClient, QueryConfig } from "pg";
-import type {
-  PackagingAtWarehouse,
-  WarehouseRequestType,
-} from "../warehouse.types";
-import BaseWarehouseService from "./base.service";
+import type { PackagingRequestType, StockAt } from "../packaging.types";
+import BasePackagingService from "./base.service";
 
 const sortFieldMap: Record<string, string> = {
   name: "name",
-  min_stock_level: "min_stock_level",
-  unit: "unit",
-  pcs_ctn: "pcs_ctn",
+  address: "address",
   status: "status",
-  quantity: "quantity",
+  disabled_at: "disabled_at",
   created_at: "created_at",
   updated_at: "updated_at",
 };
 
-export class FindPackagingsByIdService extends BaseWarehouseService {
+export class FindWarehousesByIdService extends BasePackagingService {
   async execute(
     warehouseId: string,
-    query?: WarehouseRequestType["GetPackagingsById"]["Querystring"]
-  ): Promise<{ packagings: PackagingAtWarehouse[]; metadata: Metadata }> {
+    query?: PackagingRequestType["GetWarehousesById"]["Querystring"]
+  ): Promise<{ warehouses: StockAt[]; metadata: Metadata }> {
     const logService = this.log.child({
-      service: "FindPackagingById.execute",
+      service: "FindWarehousesByIdService.execute",
       source: "database",
       operation: "db.transaction",
     });
     const cte = `
-      WITH packagings AS (
-        SELECT p.*,
-              pi.quantity,
-              (
-                CASE
-                  WHEN f.id IS NOT NULL THEN 
-                      json_build_object(
-                          'id', pim.file_id,
-                          'width', pim.width,
-                          'height', pim.height,
-                          'is_primary', pim.is_primary,
-                          'original_name', f.original_name,
-                          'mime_type', f.mime_type,
-                          'destination', f.destination,
-                          'file_name', f.file_name,
-                          'size', f.size,
-                          'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                      ) 
-                END
-              ) AS image
+    WITH warehouses AS 
+    (
+        SELECT w.*, pi.quantity
         FROM packaging_inventory pi
-            INNER JOIN packagings p ON p.id = pi.packaging_id 
-                AND p.deleted_at IS NULL
-            LEFT JOIN packaging_images pim ON pim.packaging_id = p.id 
-                AND pim.is_primary = TRUE 
-                AND pim.deleted_at IS NULL
-            LEFT JOIN files f ON f.id = pim.file_id
-        WHERE pi.warehouse_id = $1::text
-      )
+            INNER JOIN warehouses w ON w.id = pi.warehouse_id AND w.deleted_at IS NULL
+        WHERE pi.packaging_id = $1::text
+    )
     `;
 
-    const baseSelect = `FROM packagings`;
+    const baseSelect = `FROM warehouses`;
 
     const where: string[] = [];
     const values: (string | number)[] = [warehouseId];
@@ -69,40 +42,33 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
 
     if (query) {
       if (query.name !== undefined) {
-        where.push(`name ILIKE $${idx}::text`);
+        where.push(`name ILIKE $${idx++}::text`);
         values.push(`%${query.name.trim()}%`);
-        idx++;
       }
 
-      if (query.unit !== undefined) {
-        where.push(`unit = $${idx}::text`);
-        values.push(query.unit);
-        idx++;
+      if (query.address !== undefined) {
+        where.push(`address ILIKE $${idx++}::text`);
+        values.push(`%${query.address.trim()}%`);
       }
 
       if (query.status !== undefined) {
-        where.push(`status = $${idx}::text`);
+        where.push(
+          `status = $${idx++}::text`,
+          query.status === "ACTIVE"
+            ? "disabled_at IS NULL"
+            : "disabled_at IS NOT NULL"
+        );
         values.push(query.status);
-        idx++;
-
-        // thêm điều kiện deactivated
-        if (query.status === "ACTIVE") {
-          where.push(`disabled_at IS NULL`);
-        } else {
-          where.push(`disabled_at IS NOT NULL`);
-        }
       }
 
       if (query.created_from) {
-        where.push(`created_at >= $${idx}::timestamptz`);
+        where.push(`created_at >= $${idx++}::timestamptz`);
         values.push(query.created_from);
-        idx++;
       }
 
       if (query.created_to) {
-        where.push(`created_at <= $${idx}::timestamptz`);
+        where.push(`created_at <= $${idx++}::timestamptz`);
         values.push(query.created_to);
-        idx++;
       }
     }
 
@@ -121,8 +87,8 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
     let step: number = 0;
     let maxStep: number = 2;
 
-    let result: { packagings: PackagingAtWarehouse[]; metadata: Metadata } = {
-      packagings: [],
+    let result: { warehouses: StockAt[]; metadata: Metadata } = {
+      warehouses: [],
       metadata: {
         totalItem: 0,
         totalPage: 0,
@@ -168,9 +134,7 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
           values: [...values, limit, offset],
         };
 
-        const { rows: packagings } = await client.query<PackagingAtWarehouse>(
-          queryConfig
-        );
+        const { rows: warehouses } = await client.query<StockAt>(queryConfig);
 
         logService.info(
           {
@@ -184,7 +148,7 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
         const totalPage = Math.ceil(totalItem / limit);
 
         result = {
-          packagings,
+          warehouses,
           metadata: {
             totalItem,
             totalPage,

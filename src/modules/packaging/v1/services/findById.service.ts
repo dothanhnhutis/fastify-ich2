@@ -1,18 +1,18 @@
-import type { Warehouse } from "@modules/shared/types";
+import type { Packaging } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import BaseWarehouseService from "./base.service";
+import BasePackagingService from "./base.service";
 
-export default class FindByIdService extends BaseWarehouseService {
-  async execute(warehouseId: string): Promise<Warehouse | null> {
+export default class FindByIdService extends BasePackagingService {
+  async execute(packagingId: string): Promise<Packaging | null> {
     const queryConfig: QueryConfig = {
       text: `
-        SELECT *
-        FROM warehouses
-        WHERE deleted_at IS NULL
-          AND id = $1::text;
+      SELECT *
+      FROM packagings p
+      WHERE p.deleted_at IS NULL
+        AND id = $1::text;
       `,
-      values: [warehouseId],
+      values: [packagingId],
     };
     const logService = this.log.child({
       service: "FindByIdService.execute",
@@ -21,16 +21,16 @@ export default class FindByIdService extends BaseWarehouseService {
       query: queryConfig,
     });
     try {
-      const { rows } = await this.pool.query<Warehouse>(queryConfig);
+      const { rows } = await this.pool.query<Packaging>(queryConfig);
 
       if (rows[0]) {
         logService.info(
-          `Tìm thấy nhà kho warehouseId=${warehouseId} trong database`
+          `Tìm thấy bao bì packagingId=${packagingId} trong database`
         );
         return rows[0];
       }
       logService.info(
-        `Không tìm thấy nhà kho warehouseId=${warehouseId} trong database`
+        `Không tìm thấy bao bì packagingId=${packagingId} trong database`
       );
       return null;
     } catch (error: unknown) {
@@ -48,7 +48,7 @@ export default class FindByIdService extends BaseWarehouseService {
             },
           },
         },
-        `Lỗi khi truy vấn nhà kho warehouseId=${warehouseId} trong database.`
+        `Lỗi khi truy vấn bao bì packagingId=${packagingId} trong database.`
       );
       throw new InternalServerError();
     }

@@ -6,8 +6,8 @@ import BaseWarehouseService from "./base.service";
 export default class DeleteByIdService extends BaseWarehouseService {
   async execute(warehouseId: string): Promise<Warehouse> {
     const queryConfig: QueryConfig = {
-      text: `DELETE FROM warehouses WHERE id = $1 RETURNING *;`,
-      values: [warehouseId],
+      text: `UPDATE warehouses SET deleted_at = $1::timestamptz WHERE id = $2 RETURNING *;`,
+      values: [new Date(), warehouseId],
     };
     const logService = this.log.child({
       service: "DeleteByIdService.execute",
