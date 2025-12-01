@@ -47,7 +47,7 @@ export default class FindWithoutPasswordByIdService extends BaseUserService {
     const logService = this.log.child({
       service: "FindWithoutPasswordByIdService.execute",
       source: "database",
-      operation: "db.query",
+      operation: "db.select",
       query: queryConfig,
     });
 

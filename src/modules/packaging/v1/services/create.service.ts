@@ -40,7 +40,7 @@ export default class CreateService extends BasePackagingService {
 
     let client: PoolClient | null = null;
     let step: number = 0;
-    let maxStep: number = 2;
+    let maxStep: number = 3;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");

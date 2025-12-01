@@ -13,6 +13,7 @@ export default class CreateService extends BaseUserService {
     const logService = this.log.child({
       service: "CreateService.execute",
       source: "database",
+      operation: "db.transaction",
     });
     let step: number = 0;
     const maxStep: number = data.roleIds && data.roleIds.length > 0 ? 3 : 2;

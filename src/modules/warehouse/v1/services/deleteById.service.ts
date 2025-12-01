@@ -12,7 +12,7 @@ export default class DeleteByIdService extends BaseWarehouseService {
     const logService = this.log.child({
       service: "DeleteByIdService.execute",
       source: "database",
-      operation: "db.delete",
+      operation: "db.update",
       queryConfig,
     });
     try {

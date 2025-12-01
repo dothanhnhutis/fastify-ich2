@@ -171,7 +171,7 @@ export default class FindManyService extends BaseRoleService {
       client = await this.pool.connect();
       await client.query("BEGIN");
 
-      const { rows: countRows } = await this.pool.query<{ count: number }>(
+      const { rows: countRows } = await client.query<{ count: number }>(
         queryConfig
       );
       const totalItem = countRows[0]?.count ?? 0;
@@ -203,7 +203,7 @@ export default class FindManyService extends BaseRoleService {
           values: [...values, limit, offset],
         };
 
-        const { rows: roles } = await this.pool.query<RoleDetail>(queryConfig);
+        const { rows: roles } = await client.query<RoleDetail>(queryConfig);
         logService.info(
           {
             operation: "db.transaction",

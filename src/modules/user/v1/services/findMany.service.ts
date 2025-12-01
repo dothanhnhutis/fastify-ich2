@@ -98,6 +98,7 @@ export default class FindManyService extends BaseUserService {
     const logService = this.log.child({
       service: "FindManyService.execute",
       source: "database",
+      operation: "db.transaction",
     });
 
     let queryConfig: QueryConfig = {

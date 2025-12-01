@@ -66,7 +66,7 @@ export default class FindDetailWithoutPasswordByIdService extends BaseUserServic
     const logService = this.log.child({
       service: "FindDetailWithoutPasswordByIdService.execute",
       source: "database",
-      operation: "db.query",
+      operation: "db.select",
       query: queryConfig,
     });
 

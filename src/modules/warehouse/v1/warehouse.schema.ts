@@ -78,9 +78,9 @@ export const createWarehouseBodySchema = z
       .string("Địa chỉ kho hàng phải là chuỗi.")
       .trim()
       .min(1, "Địa chỉ kho hàng không được trống."),
-    packagingIds: z
-      .array(z.string("Mã bao bì phải là chuỗi."), "Mã bao bì phải là mãng.")
-      .optional(),
+    // packagingIds: z
+    //   .array(z.string("Mã bao bì phải là chuỗi."), "Mã bao bì phải là mãng.")
+    //   .optional(),
   })
   .strict();
 
@@ -94,10 +94,10 @@ export const updateWarehouseByIdBodySchema = z
       .string("Địa chỉ kho hàng phải là chuỗi.")
       .trim()
       .min(1, "Địa chỉ kho hàng không được trống."),
-    packagingIds: z.array(
-      z.string("Mã bao bì phải là chuỗi."),
-      "Mã bao bì phải là mãng."
-    ),
+    // packagingIds: z.array(
+    //   z.string("Mã bao bì phải là chuỗi."),
+    //   "Mã bao bì phải là mãng."
+    // ),
     status: z.enum(
       ["ACTIVE", "DISABLED"],
       "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."

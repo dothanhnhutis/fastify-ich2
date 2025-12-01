@@ -17,7 +17,7 @@ export default class FindByIdService extends BaseWarehouseService {
     const logService = this.log.child({
       service: "FindByIdService.execute",
       source: "database",
-      operation: "db.query",
+      operation: "db.select",
       query: queryConfig,
     });
     try {

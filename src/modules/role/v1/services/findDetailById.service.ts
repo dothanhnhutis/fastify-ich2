@@ -54,7 +54,7 @@ export default class FindDetailByIdService extends BaseRoleService {
     const logService = this.log.child({
       service: "FindDetailByIdService.execute",
       source: "database",
-      operation: "db.query",
+      operation: "db.select",
       query: queryConfig,
     });
 

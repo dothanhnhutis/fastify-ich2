@@ -82,13 +82,13 @@ const createPackagingPieceBodySchema = z
       .min(1, "Mức tồn kho tối thiểu phải là số nguyên dương.")
       .optional(),
     unit: z.literal("PIECE", `Loại bao bì phải là 'PIECE' hoặc 'CARTON'.}`),
-    warehouseIds: z
-      .array(
-        z.string("Mã kho hàng phải là chuỗi."),
-        "Danh sách mã kho hàng phải là mãng."
-      )
-      .min(1, "Danh sách mã kho hàng phải có ít nhất 1 phần tử.")
-      .optional(),
+    // warehouseIds: z
+    //   .array(
+    //     z.string("Mã kho hàng phải là chuỗi."),
+    //     "Danh sách mã kho hàng phải là mãng."
+    //   )
+    //   .min(1, "Danh sách mã kho hàng phải có ít nhất 1 phần tử.")
+    //   .optional(),
   })
   .strict();
 
@@ -106,13 +106,13 @@ const createPackagingCartonBodySchema = z
     pcs_ctn: z
       .int("Quy cách phải là số nguyên.")
       .min(1, "Quy cách phải là số nguyên dương."),
-    warehouseIds: z
-      .array(
-        z.string("Mã kho hàng phải là chuỗi."),
-        "Danh sách mã kho hàng phải là mãng."
-      )
-      .min(1, "Danh sách mã kho hàng phải có ít nhất 1 phần tử.")
-      .optional(),
+    // warehouseIds: z
+    //   .array(
+    //     z.string("Mã kho hàng phải là chuỗi."),
+    //     "Danh sách mã kho hàng phải là mãng."
+    //   )
+    //   .min(1, "Danh sách mã kho hàng phải có ít nhất 1 phần tử.")
+    //   .optional(),
   })
   .strict();
 

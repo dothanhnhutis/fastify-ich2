@@ -39,7 +39,7 @@ export default class FindByEmailService extends BaseUserService {
     const logService = this.log.child({
       service: "FindByEmailService.execute",
       source: "database",
-      operation: "db.query",
+      operation: "db.select",
       query: queryConfig,
     });
 

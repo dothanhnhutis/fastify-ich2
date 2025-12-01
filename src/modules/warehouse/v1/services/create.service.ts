@@ -20,32 +20,46 @@ export default class CreateService extends BaseWarehouseService {
     };
     let client: PoolClient | null = null;
     let step: number = 0;
-    let maxStep: number = 2;
+    const maxStep: number = 3;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
 
-      const { rows } = await this.pool.query<Warehouse>(queryConfig);
+      const { rows: warehouses } = await client.query<Warehouse>(queryConfig);
+
+      const selectPackagingText: string =
+        "SELECT id FROM packagings WHERE deleted_at IS NULL;";
+
+      const { rows: packagingIds } = await client.query<{ id: string }>({
+        text: selectPackagingText,
+      });
+
       logService.info(
         {
-          step: `${++step}/${
-            !data.packagingIds || data.packagingIds.length === 0
-              ? --maxStep
-              : maxStep
-          }`,
+          step: `${++step}/${packagingIds.length === 0 ? 1 : maxStep}`,
           stepOperation: "db.insert",
           queryConfig: queryConfig,
         },
         `[${step}/${maxStep}] Tạo thông tin nhà kho thành công.`
       );
 
-      if (data.packagingIds && data.packagingIds.length > 0) {
-        const values: string[] = [];
-        const placeholders = data.packagingIds
-          .map((id, i) => {
-            const baseIndex = i * 2;
-            values.push(rows[0].id, id);
-            return `($${baseIndex + 1}, $${baseIndex + 2})`;
+      if (packagingIds.length > 0) {
+        logService.info(
+          {
+            step: `${++step}/${maxStep}`,
+            stepOperation: "db.select",
+            queryConfig: {
+              text: selectPackagingText,
+            },
+          },
+          `[${step}/${maxStep}] Lấy danh sách bao bì.`
+        );
+
+        const values: string[] = [warehouses[0].id];
+        const placeholders = packagingIds
+          .map(({ id }, i) => {
+            values.push(warehouses[0].id, id);
+            return `($1, $${i + 2})`;
           })
           .join(", ");
 
@@ -61,12 +75,13 @@ export default class CreateService extends BaseWarehouseService {
             stepOperation: "db.insert",
             queryConfig: queryConfig,
           },
-          `[${step}/${maxStep}] Thêm các bao bì vào nhà kho warehouseId=${rows[0].id} thành công.`
+          `[${step}/${maxStep}] Thêm tất cả bao bì vào nhà kho warehouseId=${warehouses[0].id} thành công.`
         );
       }
+
       await client.query("COMMIT");
       logService.info(`[${step}/${maxStep}] Commit thành công.`);
-      return rows[0];
+      return warehouses[0];
     } catch (error) {
       logService.error(
         {
