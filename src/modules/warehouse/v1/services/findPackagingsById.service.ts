@@ -203,6 +203,7 @@ export class FindPackagingsByIdService extends BaseWarehouseService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           database: {
             host: this.pool.options.host,

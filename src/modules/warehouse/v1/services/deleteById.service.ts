@@ -22,6 +22,7 @@ export default class DeleteByIdService extends BaseWarehouseService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

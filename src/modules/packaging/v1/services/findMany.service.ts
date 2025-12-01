@@ -15,16 +15,33 @@ const sortFieldMap: Record<string, string> = {
   disabled_at: "w.disabled_at",
   created_at: "w.created_at",
   updated_at: "w.updated_at",
-  warehouse_count: "warehouse_count",
-  total_quantity: "total_quantity",
+  warehouse_count: "w.warehouse_count",
+  total_quantity: "w.total_quantity",
 };
 
 export default class FindManyService extends BasePackagingService {
   async execute(
     query: PackagingRequestType["Query"]["Querystring"]
-  ): Promise<{ warehouses: PackagingDetail[]; metadata: Metadata }> {
+  ): Promise<{ packagings: PackagingDetail[]; metadata: Metadata }> {
     const baseSelect = `
     SELECT p.*,
+          (
+            CASE
+                WHEN pim.file_id IS NOT NULL THEN
+                    json_build_object(
+                        'id', pim.file_id,
+                        'width', pim.width,
+                        'height', pim.height,
+                        'is_primary', pim.is_primary,
+                        'original_name', f.original_name,
+                        'mime_type', f.mime_type,
+                        'destination', f.destination,
+                        'file_name', f.file_name,
+                        'size', f.size,
+                        'created_at', to_char(pim.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                    )
+              END
+          ) AS image,
           SUM(pi.quantity)::int AS total_quantity,
           COUNT(w.id IS NOT NULL)::int AS warehouse_count,
           COALESCE(
@@ -84,7 +101,9 @@ export default class FindManyService extends BasePackagingService {
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-    const groupByClause = `GROUP BY w.id`;
+    const groupByClause = `GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
+         p.updated_at, pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination,
+         f.file_name, f.size, pim.created_at`;
 
     const logService = this.log.child({
       service: "FindManyService.execute",
@@ -107,8 +126,8 @@ export default class FindManyService extends BasePackagingService {
     let client: PoolClient | null = null;
     let maxStep: number = 2;
 
-    let result: { warehouses: PackagingDetail[]; metadata: Metadata } = {
-      warehouses: [],
+    let result: { packagings: PackagingDetail[]; metadata: Metadata } = {
+      packagings: [],
       metadata: {
         totalItem: 0,
         totalPage: 0,
@@ -154,7 +173,7 @@ export default class FindManyService extends BasePackagingService {
           values: [...values, limit, offset],
         };
 
-        const { rows: warehouses } = await client.query<PackagingDetail>(
+        const { rows: packagings } = await client.query<PackagingDetail>(
           queryConfig
         );
         logService.info(
@@ -167,7 +186,7 @@ export default class FindManyService extends BasePackagingService {
         );
         const totalPage = Math.ceil(totalItem / limit) || 0;
         result = {
-          warehouses,
+          packagings,
           metadata: {
             totalItem,
             totalPage,
@@ -184,6 +203,7 @@ export default class FindManyService extends BasePackagingService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

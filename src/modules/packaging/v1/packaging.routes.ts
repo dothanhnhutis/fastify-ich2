@@ -1,3 +1,4 @@
+import checkPermissionMiddleware from "@shared/middleware/checkPermission";
 import { multerMiddleware } from "@shared/middleware/multer";
 import requiredAuthMiddleware from "@shared/middleware/requiredAuth";
 import type { FastifyInstance } from "fastify";
@@ -11,7 +12,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.getWarehousesById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:packaging:*"]),
+        checkPermissionMiddleware(["read:packaging"]),
       ],
     },
     PackagingController.getWarehousesById
@@ -23,7 +24,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.getDetailById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:packaging:*"]),
+        checkPermissionMiddleware(["read:packaging"]),
       ],
     },
     PackagingController.getDetailById
@@ -35,7 +36,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.getById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:packaging:id"]),
+        checkPermissionMiddleware(["read:packaging"]),
       ],
     },
     PackagingController.getById
@@ -47,7 +48,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.query,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["read:packaging:*"]),
+        checkPermissionMiddleware(["read:packaging"]),
       ],
     },
     PackagingController.query
@@ -59,7 +60,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.create,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["create:packaging"]),
+        checkPermissionMiddleware(["create:packaging"]),
       ],
     },
     PackagingController.create
@@ -71,7 +72,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.updateImageById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["update:packaging"]),
+        checkPermissionMiddleware(["update:packaging"]),
         multerMiddleware([
           {
             name: "image",
@@ -98,21 +99,21 @@ export default async function userRoutes(fastify: FastifyInstance) {
       schema: packagingSchema.updateById,
       preHandler: [
         requiredAuthMiddleware,
-        // checkPermissionMiddleware(["update:packaging"]),
+        checkPermissionMiddleware(["update:packaging"]),
       ],
     },
     PackagingController.updateById
   );
 
-  // fastify.delete(
-  //   "/:id",
-  //   {
-  //     schema: deletePackagingByIdSchema,
-  //     preHandler: [
-  //       requiredAuthMiddleware,
-  //       // checkPermissionMiddleware(["delete:packaging"]),
-  //     ],
-  //   },
-  //   deletePackagingByIdController
-  // );
+  fastify.delete(
+    "/:id",
+    {
+      schema: packagingSchema.deleteById,
+      preHandler: [
+        requiredAuthMiddleware,
+        checkPermissionMiddleware(["delete:packaging"]),
+      ],
+    },
+    PackagingController.deleteById
+  );
 }

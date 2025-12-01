@@ -1,3 +1,4 @@
+import PackagingServiceV1 from "@modules/packaging/v1/services";
 import RoleServiceV1 from "@modules/role/v1/services";
 import SessionServiceV1 from "@modules/session/v1/services";
 import UserServiceV1 from "@modules/user/v1/services";
@@ -19,6 +20,9 @@ declare module "fastify" {
       warehouse: {
         v1: WarehouseServiceV1;
       };
+      packaging: {
+        v1: PackagingServiceV1;
+      };
     };
   }
 }
@@ -38,6 +42,9 @@ export const serviceHook = (fastify: FastifyInstance) => {
       },
       warehouse: {
         v1: new WarehouseServiceV1(request),
+      },
+      packaging: {
+        v1: new PackagingServiceV1(request),
       },
     };
   });

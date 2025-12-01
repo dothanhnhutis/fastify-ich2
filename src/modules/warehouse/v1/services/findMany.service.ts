@@ -191,6 +191,7 @@ export default class FindManyService extends BaseWarehouseService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

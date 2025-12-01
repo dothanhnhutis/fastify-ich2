@@ -1,13 +1,13 @@
-import type { Role } from "@modules/shared/types";
+import type { Warehouse } from "@modules/shared/types";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { QueryConfig } from "pg";
-import BaseUserService from "./base.service";
+import BasePackagingService from "./base.service";
 
-export default class DeleteByIdService extends BaseUserService {
-  async execute(userId: string): Promise<Role> {
+export default class DeleteByIdService extends BasePackagingService {
+  async execute(packagingId: string): Promise<Warehouse> {
     const queryConfig: QueryConfig = {
-      text: `UPDATE users SET deleted_at = $1::timestamptz WHERE id = $2::text RETURNING *;`,
-      values: [new Date(), userId],
+      text: `UPDATE packagings SET deleted_at = $1::timestamptz WHERE id = $2 RETURNING *;`,
+      values: [new Date(), packagingId],
     };
     const logService = this.log.child({
       service: "DeleteByIdService.execute",
@@ -16,8 +16,8 @@ export default class DeleteByIdService extends BaseUserService {
       queryConfig,
     });
     try {
-      const { rows } = await this.pool.query<Role>(queryConfig);
-      logService.info(`Xoá tài khoản userId=${userId} thành công.`);
+      const { rows } = await this.pool.query<Warehouse>(queryConfig);
+      logService.info(`Xoá bao bì packagingId=${packagingId} thành công.`);
       return rows[0];
     } catch (error: unknown) {
       logService.error(
@@ -36,7 +36,7 @@ export default class DeleteByIdService extends BaseUserService {
             },
           },
         },
-        `Lỗi khi xoá tài khoản userId=${userId} trong database.`
+        `Lỗi khi xoá bao bì packagingId=${packagingId} trong database.`
       );
       throw new InternalServerError();
     }

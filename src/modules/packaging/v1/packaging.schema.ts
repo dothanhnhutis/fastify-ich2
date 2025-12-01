@@ -142,10 +142,10 @@ export const updatePackagingByIdBodySchema = z
       ["ACTIVE", "DISABLED"],
       "Trạng thái phải là một trong 'ACTIVE', 'DISABLED'."
     ),
-    warehouseIds: z.array(
-      z.string("Mã kho hàng phải là chuỗi."),
-      "Danh sách mã kho hàng phải là mãng."
-    ),
+    // warehouseIds: z.array(
+    //   z.string("Mã kho hàng phải là chuỗi."),
+    //   "Danh sách mã kho hàng phải là mãng."
+    // ),
   })
   .partial();
 
@@ -171,6 +171,9 @@ export const packagingSchema = {
     body: updatePackagingByIdBodySchema,
   },
   updateImageById: {
+    params: packagingParamsSchema,
+  },
+  deleteById: {
     params: packagingParamsSchema,
   },
 };

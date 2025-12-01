@@ -42,6 +42,9 @@ export type PackagingRequestType = {
   UpdateImageById: {
     Params: z.infer<typeof packagingParamsSchema>;
   };
+  DeleteById: {
+    Params: z.infer<typeof packagingParamsSchema>;
+  };
 };
 
 // export interface IPackagingRepository {

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import authRoutes from "./auth";
 import fileRoutes from "./file";
+import packagingRoutes from "./packaging";
 import roleRoutes from "./role";
 import sessionRoutes from "./session";
 import userRoutes from "./user";
@@ -19,4 +20,5 @@ export default async function appRoutes(fastify: FastifyInstance) {
   fastify.register(roleRoutes);
   fastify.register(fileRoutes);
   fastify.register(warehouseRoutes);
+  fastify.register(packagingRoutes);
 }

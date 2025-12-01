@@ -98,6 +98,7 @@ export default class CreateService extends BaseUserService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

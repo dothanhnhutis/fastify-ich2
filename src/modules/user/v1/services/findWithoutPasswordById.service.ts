@@ -62,6 +62,7 @@ export default class FindWithoutPasswordByIdService extends BaseUserService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           database: {
             host: this.pool.options.host,

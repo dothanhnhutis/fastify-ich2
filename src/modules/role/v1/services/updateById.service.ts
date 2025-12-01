@@ -148,6 +148,7 @@ export default class UpdateByIdService extends BaseRoleService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

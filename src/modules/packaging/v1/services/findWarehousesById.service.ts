@@ -16,7 +16,7 @@ const sortFieldMap: Record<string, string> = {
 
 export class FindWarehousesByIdService extends BasePackagingService {
   async execute(
-    warehouseId: string,
+    packagingId: string,
     query?: PackagingRequestType["GetWarehousesById"]["Querystring"]
   ): Promise<{ warehouses: StockAt[]; metadata: Metadata }> {
     const logService = this.log.child({
@@ -37,7 +37,7 @@ export class FindWarehousesByIdService extends BasePackagingService {
     const baseSelect = `FROM warehouses`;
 
     const where: string[] = [];
-    const values: (string | number)[] = [warehouseId];
+    const values: unknown[] = [packagingId];
     let idx = 2;
 
     if (query) {
@@ -167,6 +167,7 @@ export class FindWarehousesByIdService extends BasePackagingService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           database: {
             host: this.pool.options.host,
@@ -179,7 +180,7 @@ export class FindWarehousesByIdService extends BasePackagingService {
             },
           },
         },
-        `[${step}/${maxStep}] Lỗi khi truy vấn bao bì của warehouseId=${warehouseId} trong database.`
+        `[${step}/${maxStep}] Lỗi khi truy vấn nhà kho có chứa bao bì packagingId=${packagingId} trong database.`
       );
       if (client) {
         try {

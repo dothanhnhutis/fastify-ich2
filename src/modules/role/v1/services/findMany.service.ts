@@ -234,6 +234,7 @@ export default class FindManyService extends BaseRoleService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           database: {
             host: this.pool.options.host,

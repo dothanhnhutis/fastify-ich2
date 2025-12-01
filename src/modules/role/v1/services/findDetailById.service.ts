@@ -73,6 +73,7 @@ export default class FindDetailByIdService extends BaseRoleService {
     } catch (error: unknown) {
       logService.error(
         {
+          queryConfig,
           error,
           database: {
             host: this.pool.options.host,

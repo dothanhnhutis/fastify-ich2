@@ -4,15 +4,20 @@ import type { MulterFile } from "@shared/middleware/multer";
 import { InternalServerError } from "@shared/utils/error-handler";
 import type { PoolClient, QueryConfig } from "pg";
 import sharp from "sharp";
-import BaseUserService from "./base.service";
+import BasePackagingService from "./base.service";
 
-export default class UpdateAvatarById extends BaseUserService {
-  async execute(userId: string, file: MulterFile): Promise<void> {
+export default class UpdateImageByIdService extends BasePackagingService {
+  async execute(
+    packagingId: string,
+    file: MulterFile,
+    userId: string
+  ): Promise<void> {
     const logService = this.log.child({
-      service: "UserService.execute",
+      service: "UpdateImageByIdService.execute",
       source: "database",
       operation: "db.transaction",
     });
+
     let client: PoolClient | null = null;
     let step: number = 0;
     const maxStep: number = 3;
@@ -36,6 +41,7 @@ export default class UpdateAvatarById extends BaseUserService {
       await client.query("BEGIN");
 
       // thêm file mới
+
       const { rows: files } = await client.query<FileUpload>(queryConfig);
       logService.info(
         {
@@ -49,11 +55,11 @@ export default class UpdateAvatarById extends BaseUserService {
       // xoá mềm avatar cũ
       queryConfig = {
         text: `
-            UPDATE user_avatars
-            SET deleted_at = $1::timestamptz(3), is_primary = false
-            WHERE user_id = $2::text AND is_primary = true
-          `,
-        values: [new Date(), userId],
+        UPDATE packaging_images
+        SET deleted_at = $1::timestamptz(3), is_primary = $2::boolean
+        WHERE packaging_id = $3::text AND is_primary = true
+        `,
+        values: [new Date(), false, packagingId],
       };
       await client.query(queryConfig);
       logService.info(
@@ -62,17 +68,23 @@ export default class UpdateAvatarById extends BaseUserService {
           stepOperation: "db.update",
           queryConfig,
         },
-        `[${step}/${maxStep}] Xoá mềm ảnh đại diện cũ thành công.`
+        `[${step}/${maxStep}] Xoá mềm ảnh bao bì cũ thành công.`
       );
 
       // thêm avatar
       const metadata = await sharp(files[0].path).metadata();
       queryConfig = {
         text: `
-            INSERT INTO user_avatars (user_id, file_id, width, height, is_primary)
+            INSERT INTO packaging_images (packaging_id, file_id, width, height, is_primary)
             VALUES ($1, $2, $3, $4, $5) RETURNING *;
           `,
-        values: [userId, files[0].id, metadata.width, metadata.height, true],
+        values: [
+          packagingId,
+          files[0].id,
+          metadata.width,
+          metadata.height,
+          true,
+        ],
       };
 
       await client.query(queryConfig);
@@ -82,7 +94,7 @@ export default class UpdateAvatarById extends BaseUserService {
           stepOperation: "db.insert",
           queryConfig,
         },
-        `[${step}/${maxStep}] Tạo ảnh đại diện mới thành công.`
+        `[${step}/${maxStep}] Tạo ảnh bao bì mới thành công.`
       );
 
       await client.query("COMMIT");
@@ -103,7 +115,7 @@ export default class UpdateAvatarById extends BaseUserService {
             },
           },
         },
-        `[${step}/${maxStep}] Lỗi cập nhật ảnh đại diện cho userId=${userId}.`
+        `[${step}/${maxStep}] Lỗi cập nhật ảnh bao bì cho packagingId=${packagingId}.`
       );
       fs.unlink(file.path, (err) => {
         if (err) {

@@ -16,18 +16,18 @@ export default class UpdateByIdService extends BaseWarehouseService {
     const values: unknown[] = [];
 
     if (data.name !== undefined) {
-      sets.push(`"name" = $${idx++}`);
+      sets.push(`"name" = $${idx++}::varchar`);
       values.push(data.name);
     }
 
     if (data.address !== undefined) {
-      sets.push(`"address" = $${idx++}`);
+      sets.push(`"address" = $${idx++}::text`);
       values.push(data.address);
     }
 
     if (data.status !== undefined) {
       sets.push(
-        `status = $${idx++}::text`,
+        `status = $${idx++}::varchar`,
         `disabled_at = $${idx++}::timestamptz`
       );
       values.push(data.status, data.status === "ACTIVE" ? null : new Date());
@@ -37,9 +37,9 @@ export default class UpdateByIdService extends BaseWarehouseService {
     values.push(warehouseId);
 
     const queryConfig: QueryConfig = {
-      text: `UPDATE roles SET ${sets.join(
+      text: `UPDATE warehouses SET ${sets.join(
         ", "
-      )} WHERE id = $${idx} RETURNING *;`,
+      )} WHERE id = $${idx}::text RETURNING *;`,
       values,
     };
 
@@ -58,6 +58,7 @@ export default class UpdateByIdService extends BaseWarehouseService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {

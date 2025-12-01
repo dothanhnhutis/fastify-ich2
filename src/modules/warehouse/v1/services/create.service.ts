@@ -58,8 +58,8 @@ export default class CreateService extends BaseWarehouseService {
         const values: string[] = [warehouses[0].id];
         const placeholders = packagingIds
           .map(({ id }, i) => {
-            values.push(warehouses[0].id, id);
-            return `($1, $${i + 2})`;
+            values.push(id);
+            return `($1::text, $${i + 2}::text)`;
           })
           .join(", ");
 
@@ -85,6 +85,7 @@ export default class CreateService extends BaseWarehouseService {
     } catch (error) {
       logService.error(
         {
+          queryConfig,
           error,
           // err: isPostgresError(err) ? err : String(err),
           database: {
