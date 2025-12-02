@@ -12,7 +12,7 @@ export const WarehouseController = {
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      message: `Có ${data.metadata.totalItem} kết quả.`,
       data,
     });
   },
@@ -25,7 +25,7 @@ export const WarehouseController = {
     if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      message: "Có 1 kết quả.",
       data: warehouse,
     });
   },
@@ -57,8 +57,8 @@ export const WarehouseController = {
     if (!detail) throw new BadRequestError("Nhà kho không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      packagings: detail,
+      message: "Có 1 kết quả.",
+      data: detail,
     });
   },
 
@@ -66,25 +66,11 @@ export const WarehouseController = {
     req: FastifyRequest<WarehouseRequestType["Create"]>,
     reply: FastifyReply
   ) {
-    // if (req.body.packagingIds) {
-    //   for (const packagingId of req.body.packagingIds) {
-    //     const existsPackaging = await req.services.warehouse.v1.findPackagingById(
-    //       packagingId
-    //     );
-    //     if (!existsPackaging)
-    //       throw new BadRequestError(
-    //         `Mã bao bì id=${packagingId} không tồn tại`
-    //       );
-    //   }
-    // }
     const role = await req.services.warehouse.v1.create(req.body);
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Tạo nhà kho thành công.",
-        role,
-      },
+      message: "Tạo nhà kho thành công.",
+      data: role,
     });
   },
 
@@ -95,25 +81,11 @@ export const WarehouseController = {
     const warehouse = await req.services.warehouse.v1.findById(req.params.id);
     if (!warehouse) throw new BadRequestError("Nhà kho không tồn tại.");
 
-    // if (req.body.packagingIds) {
-    //   for (const packagingId of req.body.packagingIds) {
-    //     const existsPackaging =
-    //       await req.services.warehouse.v1.findPackagingById(packagingId);
-    //     if (!existsPackaging)
-    //       throw new BadRequestError(
-    //         `Mã bao bì id=${packagingId} không tồn tại`
-    //       );
-    //   }
-    // }
-
     await req.services.warehouse.v1.updateById(warehouse.id, req.body);
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Cập nhật nhà kho thành công.",
-      },
+      message: "Cập nhật nhà kho thành công.",
     });
   },
 
@@ -128,10 +100,7 @@ export const WarehouseController = {
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Xoá nhà kho thành công.",
-      },
+      message: "Xoá nhà kho thành công.",
     });
   },
 };

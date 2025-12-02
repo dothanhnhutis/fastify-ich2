@@ -20,45 +20,65 @@ export default class FindManyService extends BaseWarehouseService {
   ): Promise<{ warehouses: WarehouseDetail[]; metadata: Metadata }> {
     const baseSelect = `
     SELECT w.*,
-          COUNT(p.id)::int as packaging_count,
+          (
+            SELECT COUNT(*)
+            FROM packaging_inventory pi2
+                JOIN packagings p2 ON p2.id = pi2.packaging_id 
+                    AND p2.deleted_at IS NULL
+            WHERE pi2.warehouse_id = w.id
+          )::int AS packaging_count,
           COALESCE(
               json_agg(
                   json_build_object(
-                        'id', p.id,
-                        'name', p.name,
-                        'min_stock_level', p.min_stock_level,
-                        'unit', p.unit,
-                        'pcs_ctn', p.pcs_ctn,
-                        'status', p.status,
-                        'disabled_at', to_char(p.disabled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-                        'deleted_at', to_char(p.deleted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-                        'created_at', to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-                        'updated_at', to_char(p.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-                        'quantity', pi.quantity,
-                        'image', CASE
-                                      WHEN pim.file_id IS NOT NULL THEN
-                                          json_build_object(
-                                                  'id', pim.file_id,
-                                                  'width', pim.width,
-                                                  'height', pim.height,
-                                                  'is_primary', pim.is_primary,
-                                                  'original_name', f.original_name,
-                                                  'mime_type', f.mime_type,
-                                                  'destination', f.destination,
-                                                  'file_name', f.file_name,
-                                                  'size', f.size,
-                                                  'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                                          )
-                                  END
-                                  
+                      'id', p.id,
+                      'name', p.name,
+                      'min_stock_level', p.min_stock_level,
+                      'unit', p.unit,
+                      'pcs_ctn', p.pcs_ctn,
+                      'status', p.status,
+                      'disabled_at',
+                      to_char(p.disabled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                      'deleted_at',
+                      to_char(p.deleted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                      'created_at', to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                      'updated_at', to_char(p.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                      'quantity', p.quantity,
+                      'image', p.image
                   )
-              ) FILTER ( WHERE p.id IS NOT NULL ), '[]'
+              )
           ) AS packagings
     FROM warehouses w
-        LEFT JOIN packaging_inventory pi ON pi.warehouse_id = w.id
-        LEFT JOIN packagings p ON p.id = pi.packaging_id AND p.deleted_at IS NULL
-        LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND p.deleted_at IS NULL
-        LEFT JOIN files f ON f.id = pim.file_id
+        LEFT JOIN LATERAL (
+            SELECT p.*,
+              (
+                CASE
+                    WHEN pim.file_id IS NOT NULL THEN
+                        json_build_object(
+                            'id', pim.file_id,
+                            'width', pim.width,
+                            'height', pim.height,
+                            'is_primary', pim.is_primary,
+                            'original_name', f.original_name,
+                            'mime_type', f.mime_type,
+                            'destination', f.destination,
+                            'file_name', f.file_name,
+                            'size', f.size,
+                            'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                        )
+                END
+              ) AS image,
+              pi.quantity
+            FROM packagings p
+                LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
+                LEFT JOIN packaging_images pim ON pim.packaging_id = p.id 
+                    AND pim.is_primary = TRUE 
+                    AND p.deleted_at IS NULL
+                LEFT JOIN files f ON f.id = pim.file_id
+            WHERE pi.warehouse_id = w.id
+                AND p.deleted_at IS NULL
+            ORDER BY p.created_at DESC
+            LIMIT 10
+        ) p ON TRUE
     `;
     const values: (string | number)[] = [];
     const where: string[] = ["w.deleted_at IS NULL"];

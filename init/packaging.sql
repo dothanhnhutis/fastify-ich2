@@ -120,6 +120,7 @@ GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disable
          pim.created_at;
 
 
+
 -- FindWarehousesByPackagingIdService
 WITH warehouses AS (SELECT w.*, pi.quantity
                     FROM packaging_inventory pi
