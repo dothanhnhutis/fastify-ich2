@@ -94,9 +94,11 @@ export default class FindManyService extends BaseWarehouseService {
       values.push(`%${query.address.trim()}%`);
     }
 
-    if (query.deleted !== undefined) {
+    if (query.status !== undefined) {
       where.push(
-        query.deleted ? `w.disabled_at IS NOT NULL` : `w.disabled_at IS NULL`
+        query.status === "ACTIVE"
+          ? `w.disabled_at IS NULL AND w.status = 'ACTIVE'`
+          : `w.disabled_at IS NOT NULL AND w.status = 'DISABLED'`
       );
     }
 

@@ -57,8 +57,11 @@ export const queryStringWarehouseSchema = queryStringSchema
   .extend({
     name: queryParamToString.pipe(z.string("Tên kho hàng phải là chuỗi.")),
     address: queryParamToString.pipe(z.string("Địa chỉ kho phải là chuỗi.")),
-    deleted: queryParamToString.pipe(
-      z.coerce.boolean("Trạng thái kho phải là boolean.")
+    status: queryParamToString.pipe(
+      z.enum(
+        ["ACTIVE", "DISABLED"],
+        `status phải là một trong: ${["ACTIVE", "DISABLED"].join(", ")}`
+      )
     ),
     sort: queryParamToArray.pipe(
       z.array(
