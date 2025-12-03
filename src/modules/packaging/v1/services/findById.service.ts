@@ -8,22 +8,22 @@ export default class FindByIdService extends BasePackagingService {
     const queryConfig: QueryConfig = {
       text: `
       SELECT p.*,
+            SUM(pi.quantity)::int AS total_quantity,
             (
               CASE
-                WHEN pim.file_id IS NOT NULL THEN
-                    json_build_object(
-                        'id', pim.file_id,
-                        'width', pim.width,
-                        'height', pim.height,
-                        'is_primary', pim.is_primary,
-                        'original_name', f.original_name,
-                        'mime_type', f.mime_type,
-                        'destination', f.destination,
-                        'file_name', f.file_name,
-                        'size', f.size,
-                        'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
-                    )
-                )
+                  WHEN pim.file_id IS NOT NULL THEN
+                      json_build_object(
+                          'id', pim.file_id,
+                          'width', pim.width,
+                          'height', pim.height,
+                          'is_primary', pim.is_primary,
+                          'original_name', f.original_name,
+                          'mime_type', f.mime_type,
+                          'destination', f.destination,
+                          'file_name', f.file_name,
+                          'size', f.size,
+                          'created_at', to_char(pim.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                      )
               END
             ) AS image
       FROM packagings p
@@ -31,8 +31,12 @@ export default class FindByIdService extends BasePackagingService {
               AND pim.is_primary = TRUE 
               AND pim.deleted_at IS NULL
           LEFT JOIN files f ON f.id = pim.file_id
+          LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
       WHERE p.deleted_at IS NULL
-          AND p.id = $1::text;
+          AND p.id = $1::text
+      GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at, p.updated_at,
+              pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+              pim.created_at;
       `,
       values: [packagingId],
     };

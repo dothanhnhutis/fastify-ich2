@@ -1,5 +1,6 @@
 -- FindPackagingByIdService
 SELECT p.*,
+       SUM(pi.quantity)::int AS total_quantity,
        (CASE
             WHEN pim.file_id IS NOT NULL THEN
                 json_build_object(
@@ -15,13 +16,17 @@ SELECT p.*,
                         'created_at', to_char(pim.created_at AT TIME ZONE 'UTC',
                                               'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                 )
-           END) AS image
+           END)               AS image
 FROM packagings p
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id
     AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
+         LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
 WHERE p.deleted_at IS NULL
-  AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03';
+  AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03'
+GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at, p.updated_at,
+         pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
+         pim.created_at;
 
 -- FindDetailPackagingByIdService
 SELECT p.*,
@@ -118,7 +123,6 @@ GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disable
          pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination, f.file_name,
          f.size,
          pim.created_at;
-
 
 
 -- FindWarehousesByPackagingIdService

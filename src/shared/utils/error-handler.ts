@@ -200,12 +200,9 @@ export async function errorHandler(
 
   // unknown error
   reply.status(500).send({
-    statusText: "INTERNAL_SERVER_ERROR",
     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-    data: {
-      message:
-        getErrorMessage(error) ||
-        "An error occurred. Please view logs for more details",
-    },
+    message:
+      getErrorMessage(error) ||
+      "An error occurred. Please view logs for more details",
   });
 }

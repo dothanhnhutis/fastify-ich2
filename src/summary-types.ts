@@ -94,7 +94,7 @@ export type WarehouseDetail = Warehouse & {
   packagings: PackagingAtWarehouse[];
 };
 
-export type PackagingAtWarehouse = Packaging & {
+export type PackagingAtWarehouse = PackagingBase & {
   quantity: number;
 };
 
@@ -111,7 +111,7 @@ export type FindPackagingsByWarehouseIdService = {
 };
 
 // packaging
-export type PackagingDetail = Packaging & {
+export type PackagingDetail = PackagingBase & {
   total_quantity: number;
   warehouse_count: number;
   warehouses: StockAt[];
@@ -119,6 +119,10 @@ export type PackagingDetail = Packaging & {
 
 export type StockAt = Warehouse & {
   quantity: number;
+};
+
+export type Packaging = PackagingBase & {
+  total_quantity: number;
 };
 
 // packaging service
@@ -194,7 +198,7 @@ export type Warehouse = {
   updated_at: Date;
 };
 
-export type Packaging = {
+export type PackagingBase = {
   id: string;
   name: string;
   min_stock_level: number;

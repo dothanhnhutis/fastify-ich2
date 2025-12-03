@@ -11,7 +11,7 @@ export const PackagingController = {
     const data = await req.services.packaging.v1.findMany(req.query);
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      mesage: `Có ${data.metadata.totalItem} kết quả.`,
       data,
     });
   },
@@ -25,7 +25,7 @@ export const PackagingController = {
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      mesage: `Có 1 kết quả.`,
       data: packaging,
     });
   },
@@ -40,7 +40,7 @@ export const PackagingController = {
     if (!packaging) throw new BadRequestError("Bao bì không tồn tại.");
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      mesage: `Có 1 kết quả.`,
       data: packaging,
     });
   },
@@ -57,7 +57,7 @@ export const PackagingController = {
     );
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
+      mesage: `Có 1 kết quả.`,
       data,
     });
   },
@@ -70,11 +70,8 @@ export const PackagingController = {
 
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Tạo bao bì thành công.",
-        packaging,
-      },
+      message: "Tạo bao bì thành công.",
+      data: packaging,
     });
   },
 
@@ -104,10 +101,7 @@ export const PackagingController = {
     });
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Cập nhật bao bì thành công.",
-      },
+      message: "Cập nhật bao bì thành công.",
     });
   },
 
@@ -138,10 +132,7 @@ export const PackagingController = {
 
     return reply.send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Cập nhật hinh bao bì thành công.",
-      },
+      message: "Cập nhật hinh bao bì thành công.",
     });
   },
 
@@ -154,10 +145,7 @@ export const PackagingController = {
     await req.services.packaging.v1.deleteById(packaging.id);
     reply.code(StatusCodes.OK).send({
       statusCode: StatusCodes.OK,
-      statusText: "OK",
-      data: {
-        message: "Xoá bao bì thành công.",
-      },
+      message: "Xoá bao bì thành công.",
     });
   },
 };
