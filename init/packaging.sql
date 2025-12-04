@@ -1,6 +1,11 @@
 -- FindPackagingByIdService
 SELECT p.*,
-       SUM(pi.quantity)::int AS total_quantity,
+       (
+        SELECT SUM(pi.quantity) FILTER ( WHERE w.id IS NOT NULL )
+        FROM packaging_inventory pi
+             LEFT JOIN warehouses w ON w.id = pi.warehouse_id AND w.deleted_at IS NULL
+        WHERE pi.packaging_id = p.id
+        )::int AS total_quantity,
        (CASE
             WHEN pim.file_id IS NOT NULL THEN
                 json_build_object(
@@ -16,17 +21,13 @@ SELECT p.*,
                         'created_at', to_char(pim.created_at AT TIME ZONE 'UTC',
                                               'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                 )
-           END)               AS image
+           END)              AS image
 FROM packagings p
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id
     AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
-         LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
 WHERE p.deleted_at IS NULL
-  AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03'
-GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at, p.updated_at,
-         pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination, f.file_name, f.size,
-         pim.created_at;
+  AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03';
 
 -- FindDetailPackagingByIdService
 SELECT p.*,
@@ -45,9 +46,9 @@ SELECT p.*,
                         'created_at', to_char(pim.created_at AT TIME ZONE 'UTC',
                                               'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                 )
-           END)                     AS image,
-       SUM(pi.quantity)::int        AS total_quantity,
-       COUNT(w.id IS NOT NULL)::int AS warehouse_count,
+           END)                                                           AS image,
+       SUM(pi.quantity)FILTER ( WHERE w.id IS NOT NULL )::int        AS total_quantity,
+       COUNT(w.id) FILTER ( WHERE w.id IS NOT NULL )::int AS warehouse_count,
        COALESCE(
                        json_agg(
                        json_build_object(
@@ -62,12 +63,12 @@ SELECT p.*,
                                'quantity', pi.quantity
                        )
                                ) FILTER ( WHERE w.id IS NOT NULL ), '[]'
-       )                            AS warehouses
+       )                                                                  AS warehouses
 FROM packagings p
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
          LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
-         LEFT JOIN warehouses w ON w.id = pi.warehouse_id
+         LEFT JOIN warehouses w ON w.id = pi.warehouse_id AND w.deleted_at IS NULL
 WHERE p.deleted_at IS NULL
   AND p.id = '019aceee-9aa3-7543-b53d-2b79bf523e03'
 GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
@@ -94,11 +95,11 @@ SELECT p.*,
                         'created_at', to_char(pim.created_at AT TIME ZONE 'UTC',
                                               'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                 )
-           END)                     AS image,
-       SUM(pi.quantity)::int        AS total_quantity,
-       COUNT(w.id IS NOT NULL)::int AS warehouse_count,
+           END) AS image,
+       count.total_quantity,
+       count.warehouse_count,
        COALESCE(
-                       json_agg(
+               json_agg(
                        json_build_object(
                                'id', w.id,
                                'name', w.name,
@@ -108,21 +109,32 @@ SELECT p.*,
                                'deleted_at', w.deleted_at,
                                'created_ad', w.created_at,
                                'updated_at', w.updated_at,
-                               'quantity', pi.quantity
+                               'quantity', w.quantity
                        )
-                               ) FILTER ( WHERE w.id IS NOT NULL ), '[]'
-       )                            AS warehouses
+               ), '[]'
+       )        AS warehouses
 FROM packagings p
          LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
          LEFT JOIN files f ON f.id = pim.file_id
-         LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
-         LEFT JOIN warehouses w ON w.id = pi.warehouse_id
+         LEFT JOIN LATERAL (
+    SELECT w.*, pi.quantity
+    FROM warehouses w
+             LEFT JOIN packaging_inventory pi ON pi.warehouse_id = w.id AND w.deleted_at IS NULL
+    WHERE pi.packaging_id = p.id
+    ORDER BY w.created_at DESC
+    LIMIT 10
+    ) w ON TRUE
+         LEFT JOIN LATERAL (
+    SELECT SUM(pi.quantity)::int AS total_quantity, COUNT(*)::int AS warehouse_count
+    FROM warehouses w
+             LEFT JOIN packaging_inventory pi ON pi.warehouse_id = w.id AND w.deleted_at IS NULL
+    WHERE pi.packaging_id = p.id
+    ) count ON TRUE
+
 WHERE p.deleted_at IS NULL
 GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
-         p.updated_at,
-         pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination, f.file_name,
-         f.size,
-         pim.created_at;
+         p.updated_at, pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination,
+         f.file_name, f.size, pim.created_at, count.warehouse_count, count.total_quantity;
 
 
 -- FindWarehousesByPackagingIdService

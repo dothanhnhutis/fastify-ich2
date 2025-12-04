@@ -29,21 +29,22 @@ export default class FindManyService extends BasePackagingService {
             CASE
                 WHEN pim.file_id IS NOT NULL THEN
                     json_build_object(
-                        'id', pim.file_id,
-                        'width', pim.width,
-                        'height', pim.height,
-                        'is_primary', pim.is_primary,
-                        'original_name', f.original_name,
-                        'mime_type', f.mime_type,
-                        'destination', f.destination,
-                        'file_name', f.file_name,
-                        'size', f.size,
-                        'created_at', to_char(pim.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                            'id', pim.file_id,
+                            'width', pim.width,
+                            'height', pim.height,
+                            'is_primary', pim.is_primary,
+                            'original_name', f.original_name,
+                            'mime_type', f.mime_type,
+                            'destination', f.destination,
+                            'file_name', f.file_name,
+                            'size', f.size,
+                            'created_at', to_char(pim.created_at AT TIME ZONE 'UTC',
+                                                  'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                     )
               END
           ) AS image,
-          SUM(pi.quantity)::int AS total_quantity,
-          COUNT(w.id IS NOT NULL)::int AS warehouse_count,
+          count.total_quantity,
+          count.warehouse_count,
           COALESCE(
               json_agg(
                   json_build_object(
@@ -55,15 +56,30 @@ export default class FindManyService extends BasePackagingService {
                       'deleted_at', w.deleted_at,
                       'created_ad', w.created_at,
                       'updated_at', w.updated_at,
-                      'quantity', pi.quantity
+                      'quantity', w.quantity
                   )
-              ) FILTER ( WHERE w.id IS NOT NULL ), '[]'
+              ), '[]'
           ) AS warehouses
     FROM packagings p
         LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
         LEFT JOIN files f ON f.id = pim.file_id
-        LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
-        LEFT JOIN warehouses w ON w.id = pi.warehouse_id
+        LEFT JOIN LATERAL 
+        (
+            SELECT w.*, pi.quantity
+            FROM warehouses w
+                LEFT JOIN packaging_inventory pi ON pi.warehouse_id = w.id AND w.deleted_at IS NULL
+            WHERE pi.packaging_id = p.id
+            ORDER BY w.created_at DESC
+            LIMIT 10
+        ) w ON TRUE
+        LEFT JOIN LATERAL 
+        (
+            SELECT SUM(pi.quantity)::int AS total_quantity,
+                   COUNT(*)::int AS warehouse_count
+            FROM warehouses w
+                LEFT JOIN packaging_inventory pi ON pi.warehouse_id = w.id AND w.deleted_at IS NULL
+            WHERE pi.packaging_id = p.id
+        ) count ON TRUE
     `;
     const values: unknown[] = [];
     const where: string[] = ["p.deleted_at IS NULL"];
@@ -103,7 +119,7 @@ export default class FindManyService extends BasePackagingService {
 
     const groupByClause = `GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
          p.updated_at, pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination,
-         f.file_name, f.size, pim.created_at`;
+         f.file_name, f.size, pim.created_at, count.warehouse_count, count.total_quantity`;
 
     const logService = this.log.child({
       service: "FindManyService.execute",

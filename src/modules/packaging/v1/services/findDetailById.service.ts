@@ -25,8 +25,8 @@ export default class FindDetailByIdService extends BasePackagingService {
                       )
                 END
               ) AS image,
-            SUM(pi.quantity)::int AS total_quantity,
-            COUNT(w.id IS NOT NULL)::int AS warehouse_count,
+            SUM(pi.quantity) FILTER ( WHERE w.id IS NOT NULL )::int AS total_quantity,
+            COUNT(w.id IS NOT NULL) FILTER ( WHERE w.id IS NOT NULL )::int AS warehouse_count,
             COALESCE(
                 json_agg(
                     json_build_object(
@@ -46,7 +46,7 @@ export default class FindDetailByIdService extends BasePackagingService {
               LEFT JOIN packaging_images pim ON pim.packaging_id = p.id AND pim.is_primary = TRUE AND pim.deleted_at IS NULL
               LEFT JOIN files f ON f.id = pim.file_id
               LEFT JOIN packaging_inventory pi ON pi.packaging_id = p.id
-              LEFT JOIN warehouses w ON w.id = pi.warehouse_id
+              LEFT JOIN warehouses w ON w.id = pi.warehouse_id AND w.deleted_at IS NULL
       WHERE p.deleted_at IS NULL
         AND p.id = $1::text
       GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
