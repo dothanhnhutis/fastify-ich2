@@ -131,7 +131,7 @@ FROM packagings p
     WHERE pi.packaging_id = p.id
     ) count ON TRUE
 
-WHERE p.deleted_at IS NULL
+WHERE p.deleted_at IS NULL AND p.min_stock_level IS NOT NULL AND count.total_quantity <= p.min_stock_level
 GROUP BY p.id, p.name, p.min_stock_level, p.unit, p.pcs_ctn, p.status, p.disabled_at, p.deleted_at, p.created_at,
          p.updated_at, pim.file_id, pim.height, pim.width, pim.is_primary, f.original_name, f.mime_type, f.destination,
          f.file_name, f.size, pim.created_at, count.warehouse_count, count.total_quantity;

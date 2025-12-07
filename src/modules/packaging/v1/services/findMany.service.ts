@@ -95,6 +95,13 @@ export default class FindManyService extends BasePackagingService {
       values.push(query.unit);
     }
 
+    if (query.is_warning !== undefined) {
+      where.push(
+        `p.min_stock_level IS NOT NULL`,
+        `count.total_quantity <= p.min_stock_level`
+      );
+    }
+
     if (query.status !== undefined) {
       where.push(
         `status = $${idx++}::text`,

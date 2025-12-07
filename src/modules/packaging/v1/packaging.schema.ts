@@ -63,6 +63,9 @@ export const queryStringPackagingsSchema = queryStringSchema
       ["ACTIVE", "DISABLED"],
       `Trạng thái phải là 'ACTIVE' hoặc 'DISABLED'.`
     ),
+    is_warning: queryParamToString.pipe(
+      z.coerce.boolean("is_warning phải là boolean.")
+    ),
     sort: queryParamToArray.pipe(
       z.array(
         z.enum(sortEnum, `sort phải là một trong: ${sortEnum.join(", ")}`)
